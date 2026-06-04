@@ -5,7 +5,7 @@ WORKDIR /app
 RUN pip install poetry && poetry config virtualenvs.create false
 
 COPY pyproject.toml poetry.lock* ./
-RUN poetry install --no-dev
+RUN poetry install --only main
 
 RUN playwright install chromium && playwright install-deps chromium
 
