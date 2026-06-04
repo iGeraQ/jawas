@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build JAWAS, un agente autónomo que monitorea noticias de IA desde múltiples fuentes, sintetiza contenido con Claude, gestiona aprobación humana vía Telegram, y publica en redes sociales.
+**Goal:** Build JAWAS, an autonomous agent that monitors AI news from multiple sources, synthesizes content with Claude, manages human approval via Telegram, and publishes to social networks.
 
-**Architecture:** Cinco servicios Docker independientes comparten RDS Postgres y se comunican vía AWS SQS. Pipeline: fuentes (RSS/HN/Reddit/X scraping) → raw-items-queue → enricher+synthesizer → drafts en Postgres → Telegram HITL → approved-drafts-queue → publisher.
+**Architecture:** Five independent Docker services share RDS Postgres and communicate via AWS SQS. Pipeline: sources (RSS/HN/Reddit/X scraping) → raw-items-queue → enricher+synthesizer → drafts in Postgres → Telegram HITL → approved-drafts-queue → publisher.
 
 **Tech Stack:** Python 3.12, Anthropic SDK (Haiku + Sonnet), python-telegram-bot v21, tweepy, feedparser, playwright, praw, httpx, SQLAlchemy 2 + Alembic, boto3, APScheduler, tenacity, structlog, pydantic-settings, pytest + pytest-asyncio + pytest-mock
 
@@ -28,34 +28,34 @@ jawas/
 │       └── 001_initial_schema.py
 ├── src/
 │   ├── shared/
-│   │   ├── config.py          # pydantic-settings, todas las variables de entorno
+│   │   ├── config.py          # pydantic-settings, all environment variables
 │   │   ├── logging.py         # structlog JSON setup
 │   │   ├── db.py              # SQLAlchemy engine + SessionLocal
 │   │   ├── models.py          # RawItem, Draft, PublishedPost
-│   │   └── queue.py           # Wrapper SQS (boto3)
+│   │   └── queue.py           # SQS wrapper (boto3)
 │   ├── fetcher/
 │   │   ├── main.py            # APScheduler entry point
-│   │   ├── deduplicator.py    # filter_new_items: SELECT external_id existentes
+│   │   ├── deduplicator.py    # filter_new_items: checks existing external_ids
 │   │   └── sources/
 │   │       ├── rss.py         # feedparser
 │   │       ├── hackernews.py  # httpx → HN Firebase API
 │   │       ├── reddit.py      # praw
-│   │       └── x_scraper.py   # playwright scraping de perfiles públicos
+│   │       └── x_scraper.py   # playwright — scrapes public X profiles
 │   ├── enricher/
 │   │   ├── main.py            # SQS consumer loop
 │   │   ├── url_resolver.py    # httpx follow_redirects
 │   │   ├── content_extractor.py # Jina AI r.jina.ai/{url}
-│   │   ├── scorer.py          # Claude Haiku → score 0-10
-│   │   └── synthesizer.py     # Claude Sonnet → borrador por red social
+│   │   ├── scorer.py          # Claude Haiku → relevance score 0-10
+│   │   └── synthesizer.py     # Claude Sonnet → draft per social network
 │   ├── bot/
-│   │   ├── main.py            # Application + job_queue polling DB
+│   │   ├── main.py            # Application + job_queue polls DB for new drafts
 │   │   ├── handlers.py        # approve / edit / reject callbacks
 │   │   └── dlq.py             # /dlq command
 │   └── publisher/
 │       ├── main.py            # SQS consumer loop
 │       ├── base.py            # SocialNetworkProvider ABC
 │       └── providers/
-│           └── x.py           # XProvider (tweepy thread support)
+│           └── x.py           # XProvider (tweepy, thread support)
 └── tests/
     ├── conftest.py            # engine + db_session fixtures
     ├── test_config.py
@@ -220,7 +220,7 @@ RELEVANCE_THRESHOLD=7
 TELEGRAM_BOT_TOKEN=...
 TELEGRAM_ADMIN_CHAT_ID=...
 
-# X (Twitter) - solo para publicación
+# X (Twitter) — publishing credentials only, no read access needed
 X_API_KEY=
 X_API_SECRET=
 X_ACCESS_TOKEN=
@@ -261,7 +261,7 @@ poetry install
 docker compose up postgres localstack -d
 ```
 
-Expected: postgres disponible en :5432, localstack en :4566.
+Expected: postgres available at :5432, localstack at :4566.
 
 - [ ] **Step 7: Commit**
 
@@ -612,19 +612,19 @@ Expected: PASS (3 tests)
 alembic init migrations
 ```
 
-Edita `alembic.ini` — elimina la línea `sqlalchemy.url = ...` (será leída desde la config).
+Edit `alembic.ini` — remove the `sqlalchemy.url = ...` line (URL is read from config instead).
 
 Reemplaza el contenido clave de `migrations/env.py`:
 
 ```python
-# migrations/env.py — sección a actualizar
+# migrations/env.py — key additions
 from src.shared.config import settings
 from src.shared.models import Base
 
-# En la función run_migrations_offline():
+# In run_migrations_offline():
 url = settings.database_url
 
-# En la función run_migrations_online():
+# In run_migrations_online():
 connectable = create_engine(settings.database_url)
 
 target_metadata = Base.metadata
@@ -810,7 +810,7 @@ def fetch_hn_items(keywords: list[str] = DEFAULT_KEYWORDS, limit: int = 100) -> 
 
 ```python
 # src/fetcher/sources/reddit.py
-# No hay test — PRAW requiere OAuth real, mockear es más costoso que el valor
+# No test — PRAW requires real OAuth; mocking adds more complexity than value
 import hashlib
 import praw
 from src.shared.config import settings
@@ -1409,7 +1409,7 @@ git commit -m "feat: Sonnet synthesizer and enricher SQS consumer"
 - Create: `src/bot/main.py`
 - Create: `tests/bot/test_handlers.py`
 
-**Nota de diseño:** El bot detecta borradores nuevos mediante un polling job cada 60s que consulta la DB por drafts con `status='pending_review' AND telegram_msg_id IS NULL`. Esto elimina la necesidad de una SQS adicional.
+**Design note:** The bot detects new drafts via a polling job every 60s that queries the DB for drafts with `status='pending_review' AND telegram_msg_id IS NULL`. This eliminates the need for an additional SQS queue.
 
 - [ ] **Step 1: Write failing tests**
 
@@ -1560,7 +1560,7 @@ async def handle_edit_request(update: Update, context: ContextTypes.DEFAULT_TYPE
     draft_id = query.data.split(":")[1]
     context.user_data["editing_draft"] = draft_id
     await query.answer()
-    await query.edit_message_text("✏️ Envía el texto editado:")
+    await query.edit_message_text("✏️ Send the edited text:")
 
 async def handle_edit_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     draft_id = context.user_data.get("editing_draft")
@@ -1577,7 +1577,7 @@ async def handle_edit_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             "network": draft.network,
             "content": draft.edited_content,
         })
-        await update.message.reply_text("✅ Editado y aprobado para publicación.")
+        await update.message.reply_text("✅ Edited and approved for publishing.")
         context.user_data.pop("editing_draft", None)
         logger.info("draft_edited_approved", draft_id=draft_id)
     finally:
@@ -1603,7 +1603,7 @@ from src.shared.queue import receive_messages
 async def handle_dlq(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     messages = receive_messages(settings.dlq_url, max_messages=10)
     if not messages:
-        await update.message.reply_text("DLQ vacía ✅")
+        await update.message.reply_text("DLQ is empty ✅")
         return
     lines = "\n".join(f"• `{m['Body'][:100]}`" for m in messages[:5])
     await update.message.reply_text(
@@ -1977,14 +1977,14 @@ git commit -m "feat: local dev smoke tests and queue init script"
 **Spec coverage:**
 - RF1 ✅ Tasks 4-5 (RSS, HN, Reddit, X scraping)
 - RF2 ✅ Task 6 (URL resolver + Jina AI)
-- RF3 ✅ Task 7 (Sonnet con prompts por red social)
-- RF4 ✅ Task 7 (source_url incluido en prompt de síntesis)
+- RF3 ✅ Task 7 (Sonnet with network-specific prompts)
+- RF4 ✅ Task 7 (source_url included in synthesis prompt)
 - RF5 ✅ Task 8 (Telegram handlers approve/edit/reject)
-- RF6 ✅ Tasks 5+9 (SQS + workers independientes por red)
-- RF7 ✅ Task 5 (external_id = hash, filter_new_items con ON CONFLICT implícito)
-- RNF1 ✅ Task 9 (añadir LinkedInProvider = un archivo nuevo, sin tocar otros)
-- RNF2 ✅ Task 9 (SocialNetworkProvider ABC en base.py)
-- RNF3 ✅ Tasks 6+9 (tenacity con backoff exponencial)
-- RNF4 ✅ Task 2 (structlog JSON con item_id como contexto)
-- RNF5 ✅ Tasks 6+7 (Haiku para scoring, Sonnet para síntesis)
+- RF6 ✅ Tasks 5+9 (SQS + independent workers per network)
+- RF7 ✅ Task 5 (external_id = hash, filter_new_items with implicit ON CONFLICT)
+- RNF1 ✅ Task 9 (adding LinkedInProvider = one new file, no other changes)
+- RNF2 ✅ Task 9 (SocialNetworkProvider ABC in base.py)
+- RNF3 ✅ Tasks 6+9 (tenacity with exponential backoff)
+- RNF4 ✅ Task 2 (structlog JSON with item_id as context)
+- RNF5 ✅ Tasks 6+7 (Haiku for scoring, Sonnet for synthesis)
 - RNF6 ✅ Task 1 (.env.example + docker-compose env_file)
