@@ -4,19 +4,35 @@ from typing import Any
 from pydantic import Field
 from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings.sources.providers.dotenv import DotEnvSettingsSource
 from pydantic_settings.sources.providers.env import EnvSettingsSource
 
 
+def _comma_decode(value: Any) -> Any:
+    """Fallback: split a comma-separated string into a list."""
+    if isinstance(value, str):
+        return [x.strip() for x in value.split(",") if x.strip()]
+    return value
+
+
 class _CommaEnvSource(EnvSettingsSource):
-    """Env source that accepts comma-separated strings for list[str] fields."""
+    """Reads from os.environ, accepting CSV strings for list[str] fields."""
 
     def decode_complex_value(self, field_name: str, field: FieldInfo, value: Any) -> Any:
         try:
             return super().decode_complex_value(field_name, field, value)
         except (json.JSONDecodeError, ValueError):
-            if isinstance(value, str):
-                return [x.strip() for x in value.split(",") if x.strip()]
-            return value
+            return _comma_decode(value)
+
+
+class _CommaDotEnvSource(DotEnvSettingsSource):
+    """Reads from .env file, accepting CSV strings for list[str] fields."""
+
+    def decode_complex_value(self, field_name: str, field: FieldInfo, value: Any) -> Any:
+        try:
+            return super().decode_complex_value(field_name, field, value)
+        except (json.JSONDecodeError, ValueError):
+            return _comma_decode(value)
 
 
 class Settings(BaseSettings):
@@ -59,8 +75,12 @@ class Settings(BaseSettings):
     )
 
     @classmethod
-    def settings_customise_sources(cls, settings_cls, env_settings, **kwargs):
-        return (_CommaEnvSource(settings_cls),)
+    def settings_customise_sources(cls, settings_cls, **kwargs):
+        return (
+            kwargs["init_settings"],
+            _CommaEnvSource(settings_cls),
+            _CommaDotEnvSource(settings_cls, env_file=".env", env_file_encoding="utf-8"),
+        )
 
 
 settings = Settings()
