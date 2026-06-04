@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: jawas
+      POSTGRES_PASSWORD: jawas
+      POSTGRES_DB: jawas
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs
+      DEFAULT_REGION: us-east-1
+
+  fetcher:
+    build: .
+    command: python -m src.fetcher.main
+    env_file: .env
+    depends_on: [postgres, localstack]
+
+  enricher:
+    build: .
+    command: python -m src.enricher.main
+    env_file: .env
+    depends_on: [postgres, localstack]
+
+  bot:
+    build: .
+    command: python -m src.bot.main
+    env_file: .env
+    depends_on: [postgres]
+
+  publisher-x:
+    build: .
+    command: python -m src.publisher.main x
+    env_file: .env
+    depends_on: [postgres, localstack]
+
+volumes:
+  postgres_data:

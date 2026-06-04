@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "jawas"
+version = "0.1.0"
+description = "AI Social Listening and Publishing Agent"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+anthropic = "^0.40"
+feedparser = "^6.0"
+httpx = "^0.27"
+praw = "^7.7"
+playwright = "^1.45"
+python-telegram-bot = {version = "^21.0", extras = ["job-queue"]}
+tweepy = "^4.14"
+boto3 = "^1.34"
+sqlalchemy = "^2.0"
+alembic = "^1.13"
+apscheduler = "^3.10"
+tenacity = "^8.3"
+structlog = "^24.0"
+pydantic-settings = "^2.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+pytest-asyncio = "^0.23"
+pytest-mock = "^3.14"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry-core.backends.BuildBackend"
