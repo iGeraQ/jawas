@@ -27,23 +27,29 @@ async def notify_draft(bot, draft_id: str) -> None:
         f"*Source:* {draft.raw_item.title}\n\n"
         f"*Draft:*\n{draft.content}"
     )
-    msg = await bot.send_message(
-        chat_id=settings.telegram_admin_chat_id,
-        text=text,
-        parse_mode="Markdown",
-        reply_markup=_keyboard(draft_id),
-    )
-    draft.telegram_msg_id = msg.message_id
-    session.commit()
-    logger.info("draft_notified", draft_id=draft_id)
+    try:
+        msg = await bot.send_message(
+            chat_id=settings.telegram_admin_chat_id,
+            text=text,
+            parse_mode="Markdown",
+            reply_markup=_keyboard(draft_id),
+        )
+        draft.telegram_msg_id = msg.message_id
+        session.commit()
+        logger.info("draft_notified", draft_id=draft_id)
+    except Exception as e:
+        logger.error("notify_draft_failed", draft_id=draft_id, error=str(e), exc_info=True)
 
 
 async def handle_approve(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    draft_id = query.data.split(":")[1]
+    draft_id = query.data.split(":", 1)[1]
     with structlog.contextvars.bound_contextvars(draft_id=draft_id):
         session = get_session()
         draft = session.get(Draft, draft_id)
+        if not draft:
+            await query.answer("Draft not found.")
+            return
         draft.status = "approved"
         session.commit()
         send_message(settings.approved_drafts_queue_url, {
@@ -60,19 +66,23 @@ async def handle_approve(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def handle_reject(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    draft_id = query.data.split(":")[1]
-    session = get_session()
-    draft = session.get(Draft, draft_id)
-    draft.status = "rejected"
-    session.commit()
-    await query.answer("Rejected ❌")
-    await query.edit_message_text("❌ *Rejected*", parse_mode="Markdown")
-    logger.info("draft_rejected", draft_id=draft_id)
+    draft_id = query.data.split(":", 1)[1]
+    with structlog.contextvars.bound_contextvars(draft_id=draft_id):
+        session = get_session()
+        draft = session.get(Draft, draft_id)
+        if not draft:
+            await query.answer("Draft not found.")
+            return
+        draft.status = "rejected"
+        session.commit()
+        await query.answer("Rejected ❌")
+        await query.edit_message_text("❌ *Rejected*", parse_mode="Markdown")
+        logger.info("draft_rejected")
 
 
 async def handle_edit_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    draft_id = query.data.split(":")[1]
+    draft_id = query.data.split(":", 1)[1]
     context.user_data["editing_draft"] = draft_id
     await query.answer()
     await query.edit_message_text("✏️ Send the edited text:")
@@ -82,16 +92,20 @@ async def handle_edit_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     draft_id = context.user_data.get("editing_draft")
     if not draft_id:
         return
-    session = get_session()
-    draft = session.get(Draft, draft_id)
-    draft.edited_content = update.message.text
-    draft.status = "approved"
-    session.commit()
-    send_message(settings.approved_drafts_queue_url, {
-        "draft_id": draft_id,
-        "network": draft.network,
-        "content": draft.edited_content,
-    })
-    await update.message.reply_text("✅ Edited and approved for publishing.")
-    context.user_data.pop("editing_draft", None)
-    logger.info("draft_edited_approved", draft_id=draft_id)
+    with structlog.contextvars.bound_contextvars(draft_id=draft_id):
+        session = get_session()
+        draft = session.get(Draft, draft_id)
+        if not draft:
+            await update.message.reply_text("Draft not found.")
+            return
+        draft.edited_content = update.message.text
+        draft.status = "approved"
+        session.commit()
+        send_message(settings.approved_drafts_queue_url, {
+            "draft_id": draft_id,
+            "network": draft.network,
+            "content": draft.edited_content,
+        })
+        await update.message.reply_text("✅ Edited and approved for publishing.")
+        context.user_data.pop("editing_draft", None)
+        logger.info("draft_edited_approved")

@@ -6,7 +6,7 @@ from src.shared.queue import receive_messages
 
 
 async def handle_dlq(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    messages = receive_messages(settings.dlq_url, max_messages=10)
+    messages = receive_messages(settings.dlq_url, max_messages=10, wait_time_seconds=0)
     if not messages:
         await update.message.reply_text("DLQ is empty ✅")
         return

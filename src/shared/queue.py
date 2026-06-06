@@ -21,11 +21,11 @@ def send_message(queue_url: str, body: dict) -> None:
     logger.info("queue_message_sent", queue=queue_url)
 
 
-def receive_messages(queue_url: str, max_messages: int = 10) -> list[dict]:
+def receive_messages(queue_url: str, max_messages: int = 10, wait_time_seconds: int = 20) -> list[dict]:
     resp = _client().receive_message(
         QueueUrl=queue_url,
         MaxNumberOfMessages=max_messages,
-        WaitTimeSeconds=20,
+        WaitTimeSeconds=wait_time_seconds,
     )
     return resp.get("Messages", [])
 

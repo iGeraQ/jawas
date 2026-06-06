@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from src.shared.models import RawItem, Draft
+from src.bot.handlers import handle_approve, handle_reject
 
 
 @pytest.mark.asyncio
@@ -22,7 +23,6 @@ async def test_handle_approve_sets_status_approved(db_session):
 
     with patch("src.bot.handlers.get_session", return_value=db_session), \
          patch("src.bot.handlers.send_message"):
-        from src.bot.handlers import handle_approve
         await handle_approve(update, MagicMock())
 
     db_session.refresh(draft)
@@ -47,7 +47,6 @@ async def test_handle_reject_sets_status_rejected(db_session):
     update.callback_query = query
 
     with patch("src.bot.handlers.get_session", return_value=db_session):
-        from src.bot.handlers import handle_reject
         await handle_reject(update, MagicMock())
 
     db_session.refresh(draft)
