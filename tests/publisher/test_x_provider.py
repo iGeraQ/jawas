@@ -13,9 +13,24 @@ def test_publishes_single_tweet():
 
 
 def test_publishes_thread_for_multipart_content():
+    call_count = 0
+
+    def fake_create_tweet(**kwargs):
+        nonlocal call_count
+        call_count += 1
+        return MagicMock(data={"id": f"t{call_count}"})
+
     mock_client = MagicMock()
-    mock_client.create_tweet.return_value = MagicMock(data={"id": "t1"})
+    mock_client.create_tweet.side_effect = fake_create_tweet
+
     with patch("src.publisher.providers.x.tweepy.Client", return_value=mock_client):
         provider = XProvider()
-        provider.publish("Tweet 1\n\nTweet 2\n\nTweet 3")
+        result = provider.publish("Tweet 1\n\nTweet 2\n\nTweet 3")
+
     assert mock_client.create_tweet.call_count == 3
+    assert result == "t1"
+    # Verify thread chaining
+    calls = mock_client.create_tweet.call_args_list
+    assert "in_reply_to_tweet_id" not in calls[0].kwargs
+    assert calls[1].kwargs.get("in_reply_to_tweet_id") == "t1"
+    assert calls[2].kwargs.get("in_reply_to_tweet_id") == "t2"

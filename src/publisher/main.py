@@ -3,6 +3,7 @@ import sys
 import time
 
 import structlog
+from sqlalchemy import select
 
 from src.shared.config import settings
 from src.shared.db import get_session
@@ -23,8 +24,30 @@ def process_message(body: dict, provider_name: str) -> None:
         session = get_session()
         try:
             draft = session.get(Draft, draft_id)
-            if not draft or draft.network != provider_name:
+            if not draft:
+                logger.warning("draft_not_found", draft_id=draft_id)
+                return  # caller will delete the message
+            if draft.network != provider_name:
+                logger.warning(
+                    "draft_wrong_network",
+                    draft_id=draft_id,
+                    expected=provider_name,
+                    got=draft.network,
+                )
+                return  # caller will delete the message
+
+            # Idempotency: skip if already published
+            existing = session.execute(
+                select(PublishedPost).where(PublishedPost.draft_id == draft.id)
+            ).scalar_one_or_none()
+            if existing:
+                logger.info(
+                    "already_published",
+                    draft_id=draft_id,
+                    post_id=existing.network_post_id,
+                )
                 return
+
             content = body.get("content") or draft.content
             provider = PROVIDERS[provider_name]()
             post_id = provider.publish(content)
@@ -58,7 +81,11 @@ def run(provider_name: str) -> None:
                 body = json.loads(msg["Body"])
                 if body.get("network") == provider_name:
                     process_message(body, provider_name)
+                    # Always delete after process_message returns (processed or
+                    # permanently unprocessable). Only skip delete on exception
+                    # so transient failures stay in the queue for retry / DLQ.
                     delete_message(settings.approved_drafts_queue_url, msg["ReceiptHandle"])
+                # If network doesn't match, leave message for the correct worker.
             except Exception as e:
                 logger.error("publisher_message_failed", error=str(e), exc_info=True)
         if not messages:
