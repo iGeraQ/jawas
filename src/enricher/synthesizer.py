@@ -33,7 +33,6 @@ def generate_drafts(
     raw_content: str,
     networks: list[str] | None = None,
 ) -> dict[str, str]:
-    """Generate social media draft posts using Claude Sonnet. Returns a dict mapping network -> draft text."""
     if networks is None:
         networks = ["x"]
     drafts = {}

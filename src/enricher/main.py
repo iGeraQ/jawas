@@ -16,7 +16,10 @@ NETWORKS = ["x"]
 
 def process_message(body: dict) -> None:
     """Process a single SQS message: resolve URL, extract content, score, and synthesize drafts."""
-    item_id = body["item_id"]
+    item_id = body.get("item_id")
+    if not item_id:
+        logger.error("malformed_message", body=str(body))
+        return
     with structlog.contextvars.bound_contextvars(item_id=item_id):
         logger.info("enricher_processing")
         session = get_session()
@@ -44,6 +47,13 @@ def process_message(body: dict) -> None:
                 raw_content=item.raw_content or "",
                 networks=NETWORKS,
             )
+
+            if not drafts:
+                logger.warning("no_drafts_generated", item_id=item_id)
+                item.status = "discarded"
+                session.commit()
+                return
+
             item.status = "enriched"
 
             for network, draft_content in drafts.items():
