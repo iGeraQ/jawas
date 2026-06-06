@@ -11,8 +11,8 @@ Autonomous agent that monitors AI news (RSS, HackerNews, Reddit, X scraping), sc
 - [x] Phase 1 — Foundation (shared infra, DB models, migrations)
 - [x] Phase 2 — Fetcher (RSS, HN, Reddit, X scraping)
 - [x] Phase 3 — Enricher (URL resolver, Jina AI, Haiku scorer, Sonnet synthesizer)
-- [ ] Phase 4 — Telegram Bot (HITL handlers, polling job, DLQ) ← **next**
-- [ ] Phase 5 — Publisher (SocialNetworkProvider, X provider)
+- [x] Phase 4 — Telegram Bot (HITL handlers, polling job, DLQ)
+- [ ] Phase 5 — Publisher (SocialNetworkProvider, X provider) ← **next**
 - [ ] Phase 6 — Integration (smoke tests, local dev wiring)
 
 Active branch: `feat/phase-1-foundation`
@@ -135,13 +135,26 @@ poetry run python -m src.publisher.main x
 
 17 tests total passing.
 
-## What Phase 4 must implement (next)
+## What Phase 4 delivered (committed)
 
 **Task 8** — Telegram Bot HITL
-- `src/bot/handlers.py` — approve/edit/reject callbacks, `notify_draft()`
-- `src/bot/dlq.py` — `/dlq` command
-- `src/bot/main.py` — Application + job_queue polls DB every 60s for new drafts
+- `src/bot/handlers.py` — approve/edit/reject callbacks + `notify_draft()`
+- `src/bot/dlq.py` — `/dlq` command (non-blocking, `WaitTimeSeconds=0`)
+- `src/bot/main.py` — Application + job_queue polling DB every 60s
 - Tests: `tests/bot/test_handlers.py` (approve + reject)
+- `src/shared/queue.py` extended with `wait_time_seconds` param
+
+Known technical debt: handlers don't call `session.close()` explicitly (GC handles it). Low risk for this use case but should be revisited in Phase 6.
+
+19 tests total passing.
+
+## What Phase 5 must implement (next)
+
+**Task 9** — Publisher
+- `src/publisher/base.py` — `SocialNetworkProvider` ABC
+- `src/publisher/providers/x.py` — `XProvider` (tweepy, thread support)
+- `src/publisher/main.py` — SQS consumer loop
+- Tests: `tests/publisher/test_x_provider.py` (single tweet + thread)
 
 ## Local .env
 
