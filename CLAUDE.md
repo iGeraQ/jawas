@@ -1,13 +1,21 @@
 # JAWAS — AI Social Listening & Publishing Agent
 
+> **Session rule:** At the end of each phase, update the "Current status" and phase checklist in this file and commit it. This file is the single source of truth for progress across sessions.
+
 ## What this project is
 
 Autonomous agent that monitors AI news (RSS, HackerNews, Reddit, X scraping), scores and synthesizes content with Claude, routes drafts to a Telegram Bot for human approval, and publishes to social networks via independent SQS-triggered workers.
 
 ## Current status
 
-**Phase 1 complete** on branch `feat/phase-1-foundation`.
-**Phase 2 is next** — implement the Fetcher service.
+- [x] Phase 1 — Foundation (shared infra, DB models, migrations)
+- [ ] Phase 2 — Fetcher (RSS, HN, Reddit, X scraping) ← **next**
+- [ ] Phase 3 — Enricher (URL resolver, Jina AI, Haiku scorer, Sonnet synthesizer)
+- [ ] Phase 4 — Telegram Bot (HITL handlers, polling job, DLQ)
+- [ ] Phase 5 — Publisher (SocialNetworkProvider, X provider)
+- [ ] Phase 6 — Integration (smoke tests, local dev wiring)
+
+Active branch: `feat/phase-1-foundation`
 
 Implementation plan: `docs/superpowers/plans/2026-06-03-social-listening-agent.md`
 Design spec: `docs/superpowers/specs/2026-06-03-social-listening-agent-design.md`
