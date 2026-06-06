@@ -1,4 +1,3 @@
-# No test — PRAW requires real OAuth; mocking adds more complexity than value
 import hashlib
 import praw
 from src.shared.config import settings
@@ -23,7 +22,7 @@ def fetch_reddit_items() -> list[dict]:
                     "source": "reddit",
                     "url": f"https://reddit.com{post.permalink}",
                     "title": post.title,
-                    "raw_content": post.selftext[:500],
+                    "raw_content": post.selftext,
                 })
         logger.info("reddit_fetched", count=len(items))
         return items

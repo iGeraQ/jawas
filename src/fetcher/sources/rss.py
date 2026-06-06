@@ -17,6 +17,7 @@ def fetch_rss_items(feeds: list[str] = RSS_FEEDS) -> list[dict]:
     for url in feeds:
         try:
             feed = feedparser.parse(url)
+            before = len(items)
             for entry in feed.entries:
                 link = getattr(entry, "link", "") or ""
                 if not link:
@@ -28,7 +29,7 @@ def fetch_rss_items(feeds: list[str] = RSS_FEEDS) -> list[dict]:
                     "title": getattr(entry, "title", "") or "",
                     "raw_content": getattr(entry, "summary", "") or "",
                 })
-            logger.info("rss_fetched", feed=url, count=len(feed.entries))
+            logger.info("rss_fetched", feed=url, count=len(items) - before)
         except Exception as e:
             logger.warning("rss_fetch_failed", feed=url, error=str(e))
     return items

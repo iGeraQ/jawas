@@ -1,12 +1,14 @@
 import hashlib
 import httpx
+from src.shared.config import settings
 from src.shared.logging import logger
 
 HN_BASE = "https://hacker-news.firebaseio.com/v0"
-DEFAULT_KEYWORDS = ["AI", "LLM", "Claude", "GPT", "machine learning", "anthropic", "openai", "neural"]
 
 
-def fetch_hn_items(keywords: list[str] = DEFAULT_KEYWORDS, limit: int = 100) -> list[dict]:
+def fetch_hn_items(keywords: list[str] | None = None, limit: int = 30) -> list[dict]:
+    if keywords is None:
+        keywords = settings.hn_keywords
     try:
         ids = httpx.get(f"{HN_BASE}/topstories.json", timeout=10).json()[:limit]
     except Exception as e:

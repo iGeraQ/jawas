@@ -11,7 +11,7 @@ def test_fetch_rss_returns_items():
             summary="Anthropic releases...",
         )
     ]
-    with patch("feedparser.parse", return_value=mock_feed):
+    with patch("src.fetcher.sources.rss.feedparser.parse", return_value=mock_feed):
         items = fetch_rss_items(["https://anthropic.com/rss.xml"])
     assert len(items) == 1
     assert items[0]["title"] == "New Claude Model"
@@ -21,6 +21,6 @@ def test_fetch_rss_returns_items():
 def test_fetch_rss_skips_entries_without_link():
     mock_feed = MagicMock()
     mock_feed.entries = [MagicMock(title="No link", link="", summary="")]
-    with patch("feedparser.parse", return_value=mock_feed):
+    with patch("src.fetcher.sources.rss.feedparser.parse", return_value=mock_feed):
         items = fetch_rss_items(["https://example.com/rss.xml"])
     assert items == []
