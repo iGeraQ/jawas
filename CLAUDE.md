@@ -10,8 +10,8 @@ Autonomous agent that monitors AI news (RSS, HackerNews, Reddit, X scraping), sc
 
 - [x] Phase 1 — Foundation (shared infra, DB models, migrations)
 - [x] Phase 2 — Fetcher (RSS, HN, Reddit, X scraping)
-- [ ] Phase 3 — Enricher (URL resolver, Jina AI, Haiku scorer, Sonnet synthesizer) ← **next**
-- [ ] Phase 4 — Telegram Bot (HITL handlers, polling job, DLQ)
+- [x] Phase 3 — Enricher (URL resolver, Jina AI, Haiku scorer, Sonnet synthesizer)
+- [ ] Phase 4 — Telegram Bot (HITL handlers, polling job, DLQ) ← **next**
 - [ ] Phase 5 — Publisher (SocialNetworkProvider, X provider)
 - [ ] Phase 6 — Integration (smoke tests, local dev wiring)
 
@@ -120,18 +120,28 @@ poetry run python -m src.publisher.main x
 
 10 tests total passing.
 
-## What Phase 3 must implement (next)
+## What Phase 3 delivered (committed)
 
 **Task 6** — `src/enricher/`
-- `url_resolver.py` — httpx follow_redirects
-- `content_extractor.py` — Jina AI `r.jina.ai/{url}` with tenacity retry
-- `scorer.py` — Claude Haiku → relevance score 0-10
-- Tests: `tests/enricher/test_url_resolver.py`, `tests/enricher/test_scorer.py`
+- `url_resolver.py` — httpx follow_redirects, returns original URL on error
+- `content_extractor.py` — Jina AI `r.jina.ai/{url}` with tenacity retry (3 attempts)
+- `scorer.py` — Claude Haiku (`claude-haiku-4-5-20251001`) → score 0-10, clamped, module-level `_client`
+- Tests: `tests/enricher/test_url_resolver.py` (2), `tests/enricher/test_scorer.py` (2)
 
 **Task 7** — Enricher wiring
-- `synthesizer.py` — Claude Sonnet → draft per social network
-- `main.py` — SQS consumer loop
-- Test: `tests/enricher/test_synthesizer.py`
+- `synthesizer.py` — Claude Sonnet (`claude-sonnet-4-6`) → draft per network, module-level `_client`
+- `main.py` — SQS consumer: resolve → extract → score → gate → synthesize → persist
+- Test: `tests/enricher/test_synthesizer.py` (3, including error path)
+
+17 tests total passing.
+
+## What Phase 4 must implement (next)
+
+**Task 8** — Telegram Bot HITL
+- `src/bot/handlers.py` — approve/edit/reject callbacks, `notify_draft()`
+- `src/bot/dlq.py` — `/dlq` command
+- `src/bot/main.py` — Application + job_queue polls DB every 60s for new drafts
+- Tests: `tests/bot/test_handlers.py` (approve + reject)
 
 ## Local .env
 
