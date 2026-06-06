@@ -4,19 +4,23 @@ from playwright.async_api import async_playwright
 from src.shared.config import settings
 from src.shared.logging import logger
 
+_MAX_TWEETS_PER_PROFILE = 10
+
 
 async def _scrape_profile(page, username: str) -> list[dict]:
     items = []
     try:
         await page.goto(f"https://x.com/{username}", wait_until="networkidle", timeout=30000)
         tweets = await page.query_selector_all('[data-testid="tweet"]')
-        for tweet in tweets[:10]:
+        for tweet in tweets[:_MAX_TWEETS_PER_PROFILE]:
             text_el = await tweet.query_selector('[data-testid="tweetText"]')
             link_el = await tweet.query_selector('a[href*="/status/"]')
             if not text_el or not link_el:
                 continue
             text = await text_el.inner_text()
             href = await link_el.get_attribute("href")
+            if not href:
+                continue
             url = f"https://x.com{href}" if href.startswith("/") else href
             items.append({
                 "external_id": hashlib.sha256(f"x:{url}".encode()).hexdigest()[:32],

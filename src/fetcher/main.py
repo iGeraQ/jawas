@@ -41,7 +41,7 @@ def run_fetch_cycle() -> None:
             logger.info("fetch_cycle_done", enqueued=len(new_items))
         except Exception as e:
             session.rollback()
-            logger.error("fetch_cycle_failed", error=str(e))
+            logger.error("fetch_cycle_failed", error=str(e), exc_info=True)
         finally:
             session.close()
 
