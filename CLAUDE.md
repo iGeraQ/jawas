@@ -9,8 +9,8 @@ Autonomous agent that monitors AI news (RSS, HackerNews, Reddit, X scraping), sc
 ## Current status
 
 - [x] Phase 1 — Foundation (shared infra, DB models, migrations)
-- [ ] Phase 2 — Fetcher (RSS, HN, Reddit, X scraping) ← **next**
-- [ ] Phase 3 — Enricher (URL resolver, Jina AI, Haiku scorer, Sonnet synthesizer)
+- [x] Phase 2 — Fetcher (RSS, HN, Reddit, X scraping)
+- [ ] Phase 3 — Enricher (URL resolver, Jina AI, Haiku scorer, Sonnet synthesizer) ← **next**
 - [ ] Phase 4 — Telegram Bot (HITL handlers, polling job, DLQ)
 - [ ] Phase 5 — Publisher (SocialNetworkProvider, X provider)
 - [ ] Phase 6 — Integration (smoke tests, local dev wiring)
@@ -104,19 +104,34 @@ poetry run python -m src.publisher.main x
 - `migrations/versions/62fc571c1e75_initial_schema.py` — applied to DB
 - 5 tests passing: `tests/test_config.py` (2) + `tests/test_models.py` (3)
 
-## What Phase 2 must implement (next)
+## What Phase 2 delivered (committed)
 
 **Task 4** — `src/fetcher/sources/`
 - `rss.py` — feedparser, hardcoded list of AI blog feeds
-- `hackernews.py` — httpx → HN Firebase API, keyword filter
-- `reddit.py` — praw, configurable subreddits
-- Tests: `tests/fetcher/test_rss.py`, `tests/fetcher/test_hackernews.py`
+- `hackernews.py` — httpx → HN Firebase API, keyword filter (uses `settings.hn_keywords`)
+- `reddit.py` — praw, configurable subreddits, skips gracefully if no credentials
+- Tests: `tests/fetcher/test_rss.py` (2), `tests/fetcher/test_hackernews.py` (1)
 
 **Task 5** — Fetcher wiring
 - `src/fetcher/sources/x_scraper.py` — playwright, scrapes public X profiles
 - `src/fetcher/deduplicator.py` — `filter_new_items()` using `external_id`
 - `src/fetcher/main.py` — APScheduler entry point, ties all sources together
-- Test: `tests/fetcher/test_deduplicator.py`
+- Test: `tests/fetcher/test_deduplicator.py` (2)
+
+10 tests total passing.
+
+## What Phase 3 must implement (next)
+
+**Task 6** — `src/enricher/`
+- `url_resolver.py` — httpx follow_redirects
+- `content_extractor.py` — Jina AI `r.jina.ai/{url}` with tenacity retry
+- `scorer.py` — Claude Haiku → relevance score 0-10
+- Tests: `tests/enricher/test_url_resolver.py`, `tests/enricher/test_scorer.py`
+
+**Task 7** — Enricher wiring
+- `synthesizer.py` — Claude Sonnet → draft per social network
+- `main.py` — SQS consumer loop
+- Test: `tests/enricher/test_synthesizer.py`
 
 ## Local .env
 
