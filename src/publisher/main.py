@@ -48,7 +48,7 @@ def process_message(body: dict, provider_name: str) -> None:
                 )
                 return
 
-            content = body.get("content") or draft.content
+            content = body.get("content") or draft.edited_content or draft.content
             provider = PROVIDERS[provider_name]()
             post_id = provider.publish(content)
             draft.status = "published"
