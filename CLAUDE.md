@@ -12,8 +12,8 @@ Autonomous agent that monitors AI news (RSS, HackerNews, Reddit, X scraping), sc
 - [x] Phase 2 — Fetcher (RSS, HN, Reddit, X scraping)
 - [x] Phase 3 — Enricher (URL resolver, Jina AI, Haiku scorer, Sonnet synthesizer)
 - [x] Phase 4 — Telegram Bot (HITL handlers, polling job, DLQ)
-- [ ] Phase 5 — Publisher (SocialNetworkProvider, X provider) ← **next**
-- [ ] Phase 6 — Integration (smoke tests, local dev wiring)
+- [x] Phase 5 — Publisher (SocialNetworkProvider, X provider)
+- [ ] Phase 6 — Integration (smoke tests, local dev wiring) ← **next**
 
 Active branch: `feat/phase-1-foundation`
 
@@ -148,13 +148,21 @@ Known technical debt: handlers don't call `session.close()` explicitly (GC handl
 
 19 tests total passing.
 
-## What Phase 5 must implement (next)
+## What Phase 5 delivered (committed)
 
 **Task 9** — Publisher
 - `src/publisher/base.py` — `SocialNetworkProvider` ABC
-- `src/publisher/providers/x.py` — `XProvider` (tweepy, thread support)
-- `src/publisher/main.py` — SQS consumer loop
-- Tests: `tests/publisher/test_x_provider.py` (single tweet + thread)
+- `src/publisher/providers/x.py` — `XProvider` with per-tweet `@retry`, thread support, truncation warning
+- `src/publisher/main.py` — SQS consumer with idempotency check, unprocessable message deletion, `edited_content` respected
+- Tests: `tests/publisher/test_x_provider.py` (single tweet + thread with chain verification)
+
+21 tests total passing.
+
+## What Phase 6 must implement (next)
+
+**Task 10** — Integration
+- `scripts/init_queues.sh` — create SQS queues in LocalStack
+- `scripts/smoke_test.py` — end-to-end local validation without real API calls
 
 ## Local .env
 
