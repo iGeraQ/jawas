@@ -9,8 +9,8 @@ from src.shared.logging import logger
 class XProvider(SocialNetworkProvider):
     def __init__(self):
         self._client = tweepy.Client(
-            consumer_key=settings.x_api_key,
-            consumer_secret=settings.x_api_secret,
+            consumer_key=settings.x_consumer_key,
+            consumer_secret=settings.x_consumer_secret,
             access_token=settings.x_access_token,
             access_token_secret=settings.x_access_token_secret,
         )

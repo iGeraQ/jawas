@@ -52,8 +52,8 @@ class Settings(BaseSettings):
     relevance_threshold: int = 7
     fetch_interval_hours: int = 2
 
-    x_api_key: str = ""
-    x_api_secret: str = ""
+    x_consumer_key: str = ""
+    x_consumer_secret: str = ""
     x_access_token: str = ""
     x_access_token_secret: str = ""
 
