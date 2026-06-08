@@ -1,5 +1,4 @@
 import json
-from enum import Enum
 from typing import Any
 
 from pydantic import Field
@@ -8,10 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_settings.sources.providers.dotenv import DotEnvSettingsSource
 from pydantic_settings.sources.providers.env import EnvSettingsSource
 
-
-class AIProviderName(str, Enum):
-    ANTHROPIC = "anthropic"
-    GEMINI = "gemini"
+from src.enricher.providers.base import AIProviderName
 
 
 def _comma_decode(value: Any) -> Any:
