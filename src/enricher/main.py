@@ -7,8 +7,7 @@ from src.shared.logging import setup_logging, logger
 from src.shared.models import Draft, RawItem
 from src.shared.queue import delete_message, receive_messages
 from src.enricher.content_extractor import extract_content
-from src.enricher.scorer import score_relevance
-from src.enricher.synthesizer import generate_drafts
+from src.enricher.providers import get_provider
 from src.enricher.url_resolver import resolve_url
 
 NETWORKS = ["x"]
@@ -31,7 +30,8 @@ def process_message(body: dict) -> None:
 
             url = resolve_url(item.url)
             content = extract_content(url)
-            score = score_relevance(item.title, content)
+            provider = get_provider()
+            score = provider.score(item.title, content)
             item.relevance_score = score
 
             if score < settings.relevance_threshold:
@@ -40,7 +40,7 @@ def process_message(body: dict) -> None:
                 logger.info("item_discarded", score=score)
                 return
 
-            drafts = generate_drafts(
+            drafts = provider.synthesize(
                 title=item.title,
                 content=content,
                 source_url=url,

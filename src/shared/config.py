@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 from typing import Any
 
 from pydantic import Field
@@ -6,6 +7,11 @@ from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_settings.sources.providers.dotenv import DotEnvSettingsSource
 from pydantic_settings.sources.providers.env import EnvSettingsSource
+
+
+class AIProviderName(str, Enum):
+    ANTHROPIC = "anthropic"
+    GEMINI = "gemini"
 
 
 def _comma_decode(value: Any) -> Any:
@@ -52,7 +58,7 @@ class Settings(BaseSettings):
     relevance_threshold: int = 7
     fetch_interval_hours: int = 2
 
-    ai_provider: str = "anthropic"
+    ai_provider: AIProviderName = AIProviderName.ANTHROPIC
     gemini_api_key: str = ""
 
     x_consumer_key: str = ""

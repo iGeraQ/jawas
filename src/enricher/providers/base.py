@@ -1,10 +1,6 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 
-
-class AIProviderName(str, Enum):
-    ANTHROPIC = "anthropic"
-    GEMINI = "gemini"
+from src.shared.config import AIProviderName
 
 
 class AIProvider(ABC):
