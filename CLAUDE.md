@@ -13,7 +13,7 @@ Autonomous agent that monitors AI news (RSS, HackerNews, Reddit, X scraping), sc
 - [x] Phase 3 — Enricher (URL resolver, Jina AI, Haiku scorer, Sonnet synthesizer)
 - [x] Phase 4 — Telegram Bot (HITL handlers, polling job, DLQ)
 - [x] Phase 5 — Publisher (SocialNetworkProvider, X provider)
-- [ ] Phase 6 — Integration (smoke tests, local dev wiring) ← **next**
+- [x] Phase 6 — Integration (smoke tests, local dev wiring)
 
 Active branch: `feat/phase-1-foundation`
 
@@ -158,11 +158,14 @@ Known technical debt: handlers don't call `session.close()` explicitly (GC handl
 
 21 tests total passing.
 
-## What Phase 6 must implement (next)
+## What Phase 6 delivered (committed)
 
 **Task 10** — Integration
-- `scripts/init_queues.sh` — create SQS queues in LocalStack
-- `scripts/smoke_test.py` — end-to-end local validation without real API calls
+- `scripts/init_queues.sh` — creates raw-items, approved-drafts, dlq queues in LocalStack
+- `scripts/smoke_test.py` — validates deduplication, SocialNetworkProvider interface, and URL resolver fallback; idempotent via pre-delete
+- `src/shared/config.py` — added `extra="ignore"` so unknown env vars are silently skipped
+
+21 tests total passing.
 
 ## Local .env
 
