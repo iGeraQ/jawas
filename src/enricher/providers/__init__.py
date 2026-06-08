@@ -1,5 +1,6 @@
 from src.enricher.providers.base import AIProvider, AIProviderName, _REGISTRY, register
 from src.enricher.providers.anthropic import AnthropicProvider  # noqa: F401 — triggers @register
+from src.enricher.providers.gemini import GeminiProvider  # noqa: F401 — triggers @register
 
 
 def get_provider() -> AIProvider:
@@ -10,4 +11,4 @@ def get_provider() -> AIProvider:
     return cls()
 
 
-__all__ = ["AIProvider", "AIProviderName", "AnthropicProvider", "get_provider", "register"]
+__all__ = ["AIProvider", "AIProviderName", "AnthropicProvider", "GeminiProvider", "get_provider", "register"]
