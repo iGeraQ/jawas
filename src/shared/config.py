@@ -56,6 +56,9 @@ class Settings(BaseSettings):
 
     ai_provider: AIProviderName = AIProviderName.ANTHROPIC
     gemini_api_key: str = ""
+    anthropic_rpm: int = 50           # env: ANTHROPIC_RPM
+    gemini_rpm: int = 15              # env: GEMINI_RPM
+    fetcher_max_items_per_cycle: int = 10  # env: FETCHER_MAX_ITEMS_PER_CYCLE
 
     x_consumer_key: str = ""
     x_consumer_secret: str = ""
