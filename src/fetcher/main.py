@@ -26,6 +26,7 @@ def run_fetch_cycle() -> None:
         session = get_session()
         try:
             new_items = filter_new_items(session, all_items)
+            new_items = new_items[:settings.fetcher_max_items_per_cycle]
             for item in new_items:
                 db_item = RawItem(**item)
                 session.add(db_item)
