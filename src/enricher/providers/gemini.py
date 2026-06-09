@@ -1,6 +1,8 @@
 import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from src.enricher.providers.base import AIProvider, AIProviderName, register
+from src.enricher.providers.base import AIProvider, AIProviderName, TokenBucket, register
 from src.shared.config import settings
 from src.shared.logging import logger
 
@@ -40,11 +42,23 @@ class GeminiProvider(AIProvider):
         genai.configure(api_key=settings.gemini_api_key)
         self._flash = genai.GenerativeModel("gemini-2.0-flash")
         self._pro = genai.GenerativeModel("gemini-2.5-pro")
+        self._bucket = TokenBucket(rate=settings.gemini_rpm)
+
+    @retry(
+        retry=retry_if_exception_type(ResourceExhausted),
+        wait=wait_exponential(multiplier=2, min=10, max=120),
+        stop=stop_after_attempt(4),
+        reraise=True,
+    )
+    def _call(self, model, prompt: str):
+        self._bucket.acquire()
+        return model.generate_content(prompt)
 
     def score(self, title: str, content: str) -> int:
         try:
-            response = self._flash.generate_content(
-                _SCORE_PROMPT.format(title=title, preview=content[:500])
+            response = self._call(
+                self._flash,
+                _SCORE_PROMPT.format(title=title, preview=content[:500]),
             )
             score = max(0, min(10, int(response.text.strip())))
             logger.info("item_scored", provider="gemini", title=title[:50], score=score)
@@ -67,13 +81,14 @@ class GeminiProvider(AIProvider):
                 logger.warning("unknown_network", network=network)
                 continue
             try:
-                response = self._pro.generate_content(
+                response = self._call(
+                    self._pro,
                     _SYNTHESIS_PROMPTS[network].format(
                         title=title,
                         content=content[:3000],
                         source_url=source_url,
                         raw_content=raw_content[:500],
-                    )
+                    ),
                 )
                 drafts[network] = response.text.strip()
                 logger.info("draft_generated", provider="gemini", network=network, title=title[:50])
