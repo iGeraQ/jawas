@@ -1,6 +1,7 @@
 import anthropic
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from src.enricher.providers.base import AIProvider, AIProviderName, register
+from src.enricher.providers.base import AIProvider, AIProviderName, TokenBucket, register
 from src.shared.config import settings
 from src.shared.logging import logger
 
@@ -38,15 +39,28 @@ Write ONLY the post text.""",
 class AnthropicProvider(AIProvider):
     def __init__(self):
         self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self._bucket = TokenBucket(rate=settings.anthropic_rpm)
+
+    @retry(
+        retry=retry_if_exception_type(anthropic.RateLimitError),
+        wait=wait_exponential(multiplier=2, min=10, max=120),
+        stop=stop_after_attempt(4),
+        reraise=True,
+    )
+    def _call(self, model: str, messages: list[dict], max_tokens: int):
+        self._bucket.acquire()
+        return self._client.messages.create(
+            model=model, messages=messages, max_tokens=max_tokens
+        )
 
     def score(self, title: str, content: str) -> int:
         try:
-            response = self._client.messages.create(
+            response = self._call(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=5,
                 messages=[{"role": "user", "content": _SCORE_PROMPT.format(
                     title=title, preview=content[:500]
                 )}],
+                max_tokens=5,
             )
             score = max(0, min(10, int(response.content[0].text.strip())))
             logger.info("item_scored", provider="anthropic", title=title[:50], score=score)
@@ -69,15 +83,15 @@ class AnthropicProvider(AIProvider):
                 logger.warning("unknown_network", network=network)
                 continue
             try:
-                response = self._client.messages.create(
+                response = self._call(
                     model="claude-sonnet-4-6",
-                    max_tokens=600,
                     messages=[{"role": "user", "content": _SYNTHESIS_PROMPTS[network].format(
                         title=title,
                         content=content[:3000],
                         source_url=source_url,
                         raw_content=raw_content[:500],
                     )}],
+                    max_tokens=600,
                 )
                 drafts[network] = response.content[0].text.strip()
                 logger.info("draft_generated", provider="anthropic", network=network, title=title[:50])

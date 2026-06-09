@@ -1,4 +1,5 @@
 import pytest
+import anthropic
 from unittest.mock import MagicMock, patch
 from src.enricher.providers.anthropic import AnthropicProvider
 
@@ -61,3 +62,21 @@ def test_synthesize_skips_network_on_api_error():
         provider = AnthropicProvider()
         drafts = provider.synthesize("t", "c", "u", "r", networks=["x"])
     assert drafts == {}
+
+
+def test_score_retries_on_rate_limit_error():
+    mock_client = MagicMock()
+    rate_limit_error = anthropic.RateLimitError(
+        message="rate limit exceeded", response=MagicMock(), body={}
+    )
+    mock_client.messages.create.side_effect = [
+        rate_limit_error,
+        MagicMock(content=[MagicMock(text="7")]),
+    ]
+    with patch("src.enricher.providers.anthropic.anthropic.Anthropic", return_value=mock_client), \
+         patch("src.enricher.providers.anthropic.TokenBucket.acquire"), \
+         patch("time.sleep"):
+        provider = AnthropicProvider()
+        score = provider.score("title", "content")
+    assert score == 7
+    assert mock_client.messages.create.call_count == 2
