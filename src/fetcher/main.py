@@ -20,10 +20,10 @@ def run_fetch_cycle() -> None:
     with structlog.contextvars.bound_contextvars(cycle="fetch"):
         logger.info("fetch_cycle_start")
         raw = (
-            fetch_rss_items()[:4]
-            + fetch_hn_items()[:4]
-            + fetch_reddit_items()[:4]
-            + fetch_x_items()[:4]
+            fetch_rss_items()[:1]
+            + fetch_hn_items()[:1]
+            + fetch_reddit_items()[:1]
+            + fetch_x_items()[:1]
         )
         all_items = [i for i in raw if _has_content(i)]
         dropped = len(raw) - len(all_items)

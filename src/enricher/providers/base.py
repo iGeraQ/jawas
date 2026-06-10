@@ -7,6 +7,7 @@ from enum import Enum
 class AIProviderName(str, Enum):
     ANTHROPIC = "anthropic"
     GEMINI = "gemini"
+    OPENAI = "openai"
 
 
 class AIProvider(ABC):
