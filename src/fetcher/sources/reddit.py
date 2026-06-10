@@ -16,7 +16,7 @@ def fetch_reddit_items() -> list[dict]:
         )
         items = []
         for sub in settings.reddit_subreddits:
-            for post in reddit.subreddit(sub).hot(limit=25):
+            for post in reddit.subreddit(sub).hot(limit=25)[:4]:  # Limit to 4 items per subreddit
                 items.append({
                     "external_id": hashlib.sha256(f"reddit:{post.id}".encode()).hexdigest()[:32],
                     "source": "reddit",

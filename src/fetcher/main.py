@@ -12,15 +12,24 @@ from src.fetcher.sources.rss import fetch_rss_items
 from src.fetcher.sources.x_scraper import fetch_x_items
 
 
+def _has_content(item: dict) -> bool:
+    return len((item.get("raw_content") or "").strip()) >= 20
+
+
 def run_fetch_cycle() -> None:
     with structlog.contextvars.bound_contextvars(cycle="fetch"):
         logger.info("fetch_cycle_start")
-        all_items = (
-            fetch_rss_items()
-            + fetch_hn_items()
-            + fetch_reddit_items()
-            + fetch_x_items()
+        raw = (
+            fetch_rss_items()[:4]
+            + fetch_hn_items()[:4]
+            + fetch_reddit_items()[:4]
+            + fetch_x_items()[:4]
         )
+        all_items = [i for i in raw if _has_content(i)]
+        dropped = len(raw) - len(all_items)
+        if dropped:
+            logger.info("fetch_cycle_no_content_dropped", dropped=dropped)
+
         logger.info("fetch_cycle_collected", total=len(all_items))
 
         session = get_session()

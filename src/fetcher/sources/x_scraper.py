@@ -4,7 +4,7 @@ from playwright.async_api import async_playwright
 from src.shared.config import settings
 from src.shared.logging import logger
 
-_MAX_TWEETS_PER_PROFILE = 10
+_MAX_TWEETS_PER_PROFILE = 4
 
 
 async def _scrape_profile(page, username: str) -> list[dict]:

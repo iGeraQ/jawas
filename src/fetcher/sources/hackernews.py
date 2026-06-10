@@ -17,7 +17,7 @@ def fetch_hn_items(keywords: list[str] | None = None, limit: int = 30) -> list[d
 
     kw_lower = [k.lower() for k in keywords]
     items = []
-    for story_id in ids:
+    for story_id in ids[:4]:  # Limit to 4 items
         try:
             story = httpx.get(f"{HN_BASE}/item/{story_id}.json", timeout=5).json()
             if not story or story.get("type") != "story":

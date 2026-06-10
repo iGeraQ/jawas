@@ -18,7 +18,7 @@ def fetch_rss_items(feeds: list[str] = RSS_FEEDS) -> list[dict]:
         try:
             feed = feedparser.parse(url)
             before = len(items)
-            for entry in feed.entries:
+            for entry in feed.entries[:4]:  # Limit to 4 items per feed
                 link = getattr(entry, "link", "") or ""
                 if not link:
                     continue
