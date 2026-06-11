@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     gemini_rpm: int = 15              # env: GEMINI_RPM
     openai_rpm: int = 60              # env: OPENAI_RPM
     fetcher_max_items_per_cycle: int = 10  # env: FETCHER_MAX_ITEMS_PER_CYCLE
+    x_tweets_per_day: int = 15        # env: X_TWEETS_PER_DAY
+    x_scraper_delay_seconds: float = 2.0  # env: X_SCRAPER_DELAY_SECONDS
 
     x_consumer_key: str = ""
     x_consumer_secret: str = ""
