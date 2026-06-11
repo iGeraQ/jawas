@@ -1,5 +1,10 @@
+import pytest
+import tweepy
 from unittest.mock import patch, MagicMock
-from src.publisher.providers.x import XProvider
+
+from src.publisher.providers.x import DailyLimitReached, XProvider
+from src.publisher.main import process_message
+from src.shared.config import settings as _settings
 
 
 def test_publishes_single_tweet():
@@ -34,3 +39,20 @@ def test_publishes_thread_for_multipart_content():
     assert "in_reply_to_tweet_id" not in calls[0].kwargs
     assert calls[1].kwargs.get("in_reply_to_tweet_id") == "t1"
     assert calls[2].kwargs.get("in_reply_to_tweet_id") == "t2"
+
+
+def test_429_does_not_retry():
+    mock_response = MagicMock()
+    mock_response.headers = {"x-rate-limit-reset": "9999999999"}
+    mock_response.status_code = 429
+    mock_response.json.return_value = {"errors": []}
+
+    mock_client = MagicMock()
+    mock_client.create_tweet.side_effect = tweepy.errors.TooManyRequests(mock_response)
+
+    with patch("src.publisher.providers.x.tweepy.Client", return_value=mock_client):
+        provider = XProvider()
+        with pytest.raises(tweepy.errors.TooManyRequests):
+            provider._post_tweet("test tweet")
+
+    assert mock_client.create_tweet.call_count == 1  # not retried by tenacity
