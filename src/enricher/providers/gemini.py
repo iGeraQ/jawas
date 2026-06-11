@@ -15,24 +15,40 @@ Content: {preview}
 Guide: 0-3=off-topic, 4-6=tangential, 7-8=relevant+technical, 9-10=major breakthrough"""
 
 _SYNTHESIS_PROMPTS = {
-    "x": """You are a professional AI curator. Write a tweet thread (max 3 tweets, 280 chars each).
-Be informative and engaging. Include the source URL in the last tweet.
+    "x": """Eres un curador de noticias de IA. Escribe un hilo de tweets (máx. 3 tweets, 280 caracteres cada uno).
 
-Source: {source_url}
-Original post: {raw_content}
-Title: {title}
-Article: {content}
+ESTILO OBLIGATORIO — imita exactamente esta voz:
+- Primer tweet: primera línea en MAYÚSCULAS resumiendo el hallazgo principal. Segunda línea: métrica o resultado concreto (números reales si los hay). Resto: lista con → o numerada con 1) 2) 3), una idea por línea.
+- Español mexicano neutro con tuteo: "haz", "usa", "define", "tienes", "vas a", "puedes". Nunca voseo ("hacé", "usá", "tenés").
+- Párrafos cortísimos. Una idea por línea. Sin relleno.
+- Paréntesis para contexto sin romper el flujo: "(solo cuentas sub-500K, las grandes son ruido)"
+- Cita empresas y personas reales mencionadas en el artículo.
+- Sin hashtags. Emojis: máximo 1, solo si aporta.
+- Último tweet: incluye la URL fuente.
 
-Write ONLY the thread. Separate tweets with blank lines.""",
+Fuente: {source_url}
+Post original: {raw_content}
+Título: {title}
+Artículo: {content}
 
-    "linkedin": """You are a professional AI curator. Write a LinkedIn post (max 300 words).
-Be professional and insightful. Add your own analysis. Include the source URL.
+Escribe ÚNICAMENTE el hilo. Separa los tweets con líneas en blanco.""",
 
-Source: {source_url}
-Title: {title}
-Article: {content}
+    "linkedin": """Eres un curador de noticias de IA. Escribe un post de LinkedIn (máx. 300 palabras).
 
-Write ONLY the post text.""",
+ESTILO OBLIGATORIO — imita exactamente esta voz:
+- Primera línea: afirmación o dato impactante (puede ir en MAYÚSCULAS).
+- Cuerpo: lista numerada 1) 2) 3) o con →, una idea por línea, sin párrafos largos.
+- Español mexicano neutro con tuteo: "haz", "usa", "define", "tienes", "vas a", "puedes". Nunca voseo ("hacé", "usá", "tenés").
+- Cita empresas y métricas reales del artículo.
+- Agrega una conclusión o análisis propio al final (1-2 líneas).
+- Sin hashtags. Sin emojis decorativos (máximo 1 si aporta).
+- Último párrafo: incluye la URL fuente con "Te dejo el artículo:" o similar.
+
+Fuente: {source_url}
+Título: {title}
+Artículo: {content}
+
+Escribe ÚNICAMENTE el texto del post.""",
 }
 
 
