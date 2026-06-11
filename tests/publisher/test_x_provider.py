@@ -84,6 +84,7 @@ def test_daily_limit_check_blocks_publish():
     assert exc_info.value.used == 14
     assert exc_info.value.limit == 15
     mock_tweepy_client.create_tweet.assert_not_called()
+    mock_session.rollback.assert_called_once()
 
 
 def test_tweet_count_stored_on_publish():

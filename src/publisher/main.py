@@ -53,7 +53,7 @@ def process_message(body: dict, provider_name: str) -> None:
 
             # Proactive daily limit check (X free tier: 17 tweets/24h)
             if provider_name == "x":
-                tweet_count = len([p for p in content.split("\n\n") if p.strip()])
+                tweet_count = len([p.strip() for p in content.split("\n\n") if p.strip()])  # must match XProvider.publish() splitting
                 cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
                 used = session.scalar(
                     select(func.coalesce(func.sum(PublishedPost.tweet_count), 0))
