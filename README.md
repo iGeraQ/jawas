@@ -7,14 +7,14 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12"/>
-  <img src="https://img.shields.io/badge/AI-Anthropic%20Claude-orange" alt="Anthropic Claude"/>
+  <img src="https://img.shields.io/badge/AI-Claude%20%7C%20Gemini%20%7C%20OpenAI-orange" alt="Claude | Gemini | OpenAI"/>
   <img src="https://img.shields.io/badge/queue-AWS%20SQS-yellow" alt="AWS SQS"/>
   <img src="https://img.shields.io/badge/db-PostgreSQL-blue" alt="PostgreSQL"/>
 </p>
 
 ---
 
-JAWAS is an autonomous agent that monitors AI news from multiple sources, scores and synthesizes content with Claude, routes drafts to a Telegram bot for human approval, and publishes to social networks via independent workers.
+JAWAS is an autonomous agent that monitors AI news from multiple sources, scores and synthesizes content using the leading AI providers (Claude, Gemini, OpenAI), routes drafts to a Telegram bot for human approval, and publishes to social networks via independent workers.
 
 ## Architecture
 
@@ -22,7 +22,7 @@ JAWAS is an autonomous agent that monitors AI news from multiple sources, scores
 APScheduler (every 2h)
   → Fetcher (RSS + HackerNews + Reddit + X scraping)
   → raw-items-queue (SQS)
-  → Enricher + Synthesizer (Haiku scores, Sonnet drafts)
+  → Enricher + Synthesizer (AI scoring + draft generation)
   → Postgres drafts table (status: pending_review)
   → Telegram Bot (polls DB every 60s — approve / edit / reject)
   → approved-drafts-queue (SQS)
@@ -36,7 +36,7 @@ APScheduler (every 2h)
 | Layer | Technology |
 |---|---|
 | Language | Python 3.12 |
-| AI | Anthropic SDK — Haiku (scoring) + Sonnet (synthesis) |
+| AI | Claude, Gemini, OpenAI — pluggable provider system |
 | Queue | AWS SQS (LocalStack in dev) |
 | Database | PostgreSQL via SQLAlchemy 2 + Alembic |
 | HITL | python-telegram-bot v21 (long-polling + job_queue) |
