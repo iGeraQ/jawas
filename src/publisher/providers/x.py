@@ -42,7 +42,7 @@ class XProvider(SocialNetworkProvider):
         except tweepy.errors.TooManyRequests as e:
             reset_ts = int(e.response.headers.get("x-rate-limit-reset", 0))
             logger.warning("x_rate_limit_429", reset_at=reset_ts)
-            raise  # tenacity does not catch TooManyRequests — propagates immediately
+            raise  # tenacity sees this but retry_if_exception_type(TwitterServerError) → False, so no retry
 
     def publish(self, content: str) -> str:
         parts = [p.strip() for p in content.split("\n\n") if p.strip()]
