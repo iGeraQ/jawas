@@ -1,16 +1,17 @@
 import json
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from src.shared.config import settings
 from src.shared.db import get_session
 from src.shared.logging import setup_logging, logger
 from src.shared.models import Draft, PublishedPost
 from src.shared.queue import delete_message, receive_messages
-from src.publisher.providers.x import XProvider
+from src.publisher.providers.x import DailyLimitReached, XProvider
 
 PROVIDERS = {"x": XProvider}
 
@@ -26,7 +27,7 @@ def process_message(body: dict, provider_name: str) -> None:
             draft = session.get(Draft, draft_id)
             if not draft:
                 logger.warning("draft_not_found", draft_id=draft_id)
-                return  # caller will delete the message
+                return
             if draft.network != provider_name:
                 logger.warning(
                     "draft_wrong_network",
@@ -34,7 +35,7 @@ def process_message(body: dict, provider_name: str) -> None:
                     expected=provider_name,
                     got=draft.network,
                 )
-                return  # caller will delete the message
+                return
 
             # Idempotency: skip if already published
             existing = session.execute(
@@ -49,6 +50,21 @@ def process_message(body: dict, provider_name: str) -> None:
                 return
 
             content = body.get("content") or draft.edited_content or draft.content
+
+            # Proactive daily limit check (X free tier: 17 tweets/24h)
+            if provider_name == "x":
+                tweet_count = len([p for p in content.split("\n\n") if p.strip()])
+                cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+                used = session.scalar(
+                    select(func.coalesce(func.sum(PublishedPost.tweet_count), 0))
+                    .where(PublishedPost.network == "x")
+                    .where(PublishedPost.published_at >= cutoff)
+                ) or 0
+                if used + tweet_count > settings.x_tweets_per_day:
+                    raise DailyLimitReached(used=int(used), limit=settings.x_tweets_per_day)
+            else:
+                tweet_count = 1
+
             provider = PROVIDERS[provider_name]()
             post_id = provider.publish(content)
             draft.status = "published"
@@ -56,10 +72,14 @@ def process_message(body: dict, provider_name: str) -> None:
                 draft_id=draft.id,
                 network=provider_name,
                 network_post_id=post_id,
+                tweet_count=tweet_count,
                 url=f"https://x.com/i/web/status/{post_id}" if provider_name == "x" else None,
             ))
             session.commit()
             logger.info("post_published", network=provider_name, post_id=post_id)
+        except DailyLimitReached:
+            session.rollback()
+            raise
         except Exception as e:
             session.rollback()
             logger.error("publish_failed", error=str(e), exc_info=True)
@@ -81,11 +101,25 @@ def run(provider_name: str) -> None:
                 body = json.loads(msg["Body"])
                 if body.get("network") == provider_name:
                     process_message(body, provider_name)
-                    # Always delete after process_message returns (processed or
-                    # permanently unprocessable). Only skip delete on exception
-                    # so transient failures stay in the queue for retry / DLQ.
                     delete_message(settings.approved_drafts_queue_url, msg["ReceiptHandle"])
                 # If network doesn't match, leave message for the correct worker.
+            except DailyLimitReached as e:
+                # Compute wait until the oldest in-window tweet falls out of the 24h window
+                cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+                reset_session = get_session()
+                try:
+                    oldest = reset_session.scalar(
+                        select(func.min(PublishedPost.published_at))
+                        .where(PublishedPost.network == "x")
+                        .where(PublishedPost.published_at >= cutoff)
+                    )
+                finally:
+                    reset_session.close()
+                reset_at = oldest + timedelta(hours=24) if oldest else datetime.now(timezone.utc)
+                wait = max(0, (reset_at - datetime.now(timezone.utc)).total_seconds()) + 60
+                logger.warning("x_daily_limit_reached", used=e.used, limit=e.limit, wait_seconds=int(wait))
+                time.sleep(wait)
+                # SQS message is NOT deleted — redelivered after visibility timeout
             except Exception as e:
                 logger.error("publisher_message_failed", error=str(e), exc_info=True)
         if not messages:

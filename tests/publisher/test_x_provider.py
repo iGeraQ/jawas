@@ -56,3 +56,56 @@ def test_429_does_not_retry():
             provider._post_tweet("test tweet")
 
     assert mock_client.create_tweet.call_count == 1  # not retried by tenacity
+
+
+def test_daily_limit_check_blocks_publish():
+    """process_message raises DailyLimitReached without calling tweepy when quota is exhausted."""
+    mock_draft = MagicMock()
+    mock_draft.id = "draft-uuid"
+    mock_draft.network = "x"
+    mock_draft.content = "Tweet 1\n\nTweet 2\n\nTweet 3"  # 3 tweets
+    mock_draft.edited_content = None
+
+    mock_session = MagicMock()
+    mock_session.get.return_value = mock_draft
+    # Idempotency check: not yet published
+    mock_session.execute.return_value.scalar_one_or_none.return_value = None
+    # Daily limit: 14 used + 3 new = 17 > 15 → should block
+    mock_session.scalar.return_value = 14
+
+    mock_tweepy_client = MagicMock()
+
+    with patch("src.publisher.main.get_session", return_value=mock_session), \
+         patch("src.publisher.providers.x.tweepy.Client", return_value=mock_tweepy_client), \
+         patch.object(_settings, "x_tweets_per_day", 15):
+        with pytest.raises(DailyLimitReached) as exc_info:
+            process_message({"draft_id": "draft-uuid", "network": "x"}, "x")
+
+    assert exc_info.value.used == 14
+    assert exc_info.value.limit == 15
+    mock_tweepy_client.create_tweet.assert_not_called()
+
+
+def test_tweet_count_stored_on_publish():
+    """PublishedPost is created with tweet_count equal to the number of content paragraphs."""
+    mock_draft = MagicMock()
+    mock_draft.id = "draft-uuid"
+    mock_draft.network = "x"
+    mock_draft.content = "Tweet 1\n\nTweet 2"  # 2 tweets
+    mock_draft.edited_content = None
+
+    mock_session = MagicMock()
+    mock_session.get.return_value = mock_draft
+    mock_session.execute.return_value.scalar_one_or_none.return_value = None
+    mock_session.scalar.return_value = 0  # 0 used, 2 new = 2 <= 15 → ok
+
+    mock_provider = MagicMock()
+    mock_provider.publish.return_value = "tweet_id_1"
+
+    with patch("src.publisher.main.get_session", return_value=mock_session), \
+         patch("src.publisher.main.PROVIDERS", {"x": MagicMock(return_value=mock_provider)}), \
+         patch.object(_settings, "x_tweets_per_day", 15):
+        process_message({"draft_id": "draft-uuid", "network": "x"}, "x")
+
+    added = mock_session.add.call_args[0][0]
+    assert added.tweet_count == 2
