@@ -47,6 +47,7 @@ def fetch_x_items() -> list[dict]:
                 items = await _scrape_profile(page, username)
                 all_items.extend(items)
                 logger.info("x_profile_scraped", username=username, count=len(items))
+                await asyncio.sleep(settings.x_scraper_delay_seconds)
             await browser.close()
         return all_items
 
