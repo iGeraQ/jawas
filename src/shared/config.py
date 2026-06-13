@@ -69,6 +69,15 @@ class Settings(BaseSettings):
     x_access_token: str = ""
     x_access_token_secret: str = ""
 
+    bluesky_handle: str = ""
+    bluesky_app_password: str = ""
+
+    linkedin_access_token: str = ""
+    linkedin_author_urn: str = ""
+
+    facebook_page_id: str = ""
+    facebook_page_access_token: str = ""
+
     reddit_client_id: str = ""
     reddit_client_secret: str = ""
     reddit_user_agent: str = "jawas/1.0"
