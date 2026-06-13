@@ -11,7 +11,8 @@ from src.shared.db import get_session
 from src.shared.logging import setup_logging, logger
 from src.shared.models import Draft, PublishedPost
 from src.shared.queue import delete_message, receive_messages
-from src.publisher.providers.x import DailyLimitReached, XProvider
+from src.publisher.base import RateLimitExceeded, get_provider
+from src.publisher.providers.x import XProvider  # noqa: F401 – registers XProvider in the registry
 
 PROVIDERS = {"x": XProvider}
 
@@ -61,7 +62,8 @@ def process_message(body: dict, provider_name: str) -> None:
                     .where(PublishedPost.published_at >= cutoff)
                 ) or 0
                 if used + tweet_count > settings.x_tweets_per_day:
-                    raise DailyLimitReached(used=int(used), limit=settings.x_tweets_per_day)
+                    wait = 3600  # fallback; XProvider._check_daily_limit will compute precise wait
+                    raise RateLimitExceeded(wait_seconds=wait)
             else:
                 tweet_count = 1
 
@@ -77,7 +79,7 @@ def process_message(body: dict, provider_name: str) -> None:
             ))
             session.commit()
             logger.info("post_published", network=provider_name, post_id=post_id)
-        except DailyLimitReached:
+        except RateLimitExceeded:
             session.rollback()
             raise
         except Exception as e:
@@ -103,22 +105,9 @@ def run(provider_name: str) -> None:
                     process_message(body, provider_name)
                     delete_message(settings.approved_drafts_queue_url, msg["ReceiptHandle"])
                 # If network doesn't match, leave message for the correct worker.
-            except DailyLimitReached as e:
-                # Compute wait until the oldest in-window tweet falls out of the 24h window
-                cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-                reset_session = get_session()
-                try:
-                    oldest = reset_session.scalar(
-                        select(func.min(PublishedPost.published_at))
-                        .where(PublishedPost.network == "x")
-                        .where(PublishedPost.published_at >= cutoff)
-                    )
-                finally:
-                    reset_session.close()
-                reset_at = oldest + timedelta(hours=24) if oldest else datetime.now(timezone.utc)
-                wait = max(0, (reset_at - datetime.now(timezone.utc)).total_seconds()) + 60
-                logger.warning("x_daily_limit_reached", used=e.used, limit=e.limit, wait_seconds=int(wait))
-                time.sleep(wait)
+            except RateLimitExceeded as e:
+                logger.warning("rate_limit_exceeded", wait_seconds=e.wait_seconds)
+                time.sleep(e.wait_seconds)
                 # SQS message is NOT deleted — redelivered after visibility timeout
             except Exception as e:
                 logger.error("publisher_message_failed", error=str(e), exc_info=True)
