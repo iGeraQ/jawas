@@ -10,7 +10,7 @@ from src.enricher.content_extractor import extract_content
 from src.enricher.providers import get_provider
 from src.enricher.url_resolver import resolve_url
 
-NETWORKS = ["x"]
+NETWORKS = ["x", "linkedin", "bluesky", "facebook"]
 
 
 def process_message(body: dict) -> None:
