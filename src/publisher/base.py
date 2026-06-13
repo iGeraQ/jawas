@@ -32,7 +32,12 @@ def register_publisher(name: str):
     return decorator
 
 
+_INSTANCES: dict[str, SocialNetworkProvider] = {}
+
+
 def get_provider(name: str) -> SocialNetworkProvider:
     if name not in _REGISTRY:
         raise ValueError(f"Unknown publisher: {name}")
-    return _REGISTRY[name]()
+    if name not in _INSTANCES:
+        _INSTANCES[name] = _REGISTRY[name]()
+    return _INSTANCES[name]

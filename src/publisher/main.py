@@ -10,7 +10,7 @@ from src.shared.db import get_session
 from src.shared.logging import setup_logging, logger
 from src.shared.models import Draft, PublishedPost
 from src.shared.queue import delete_message, receive_messages
-from src.publisher.base import RateLimitExceeded, get_provider
+from src.publisher.base import RateLimitExceeded, _REGISTRY, get_provider
 import src.publisher.providers.x  # noqa: F401
 import src.publisher.providers.bluesky  # noqa: F401
 import src.publisher.providers.linkedin  # noqa: F401
@@ -72,6 +72,9 @@ def process_message(body: dict, provider_name: str) -> None:
 
 def run(provider_name: str) -> None:
     setup_logging()
+    if provider_name not in _REGISTRY:
+        logger.error("unknown_provider", provider=provider_name)
+        sys.exit(1)
     logger.info("publisher_started", provider=provider_name)
     while True:
         messages = receive_messages(settings.approved_drafts_queue_url)

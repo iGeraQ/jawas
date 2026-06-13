@@ -43,6 +43,8 @@ class LinkedInProvider(SocialNetworkProvider):
         resp.raise_for_status()
 
         post_urn = resp.headers.get("x-restli-id", "")
+        if not post_urn:
+            raise ValueError("LinkedIn API did not return x-restli-id header")
         url = f"https://www.linkedin.com/feed/update/{post_urn}/"
         logger.info("linkedin_published", urn=post_urn)
         return PublishResult(post_id=post_urn, url=url, post_count=1)
