@@ -44,5 +44,23 @@ services:
     env_file: .env
     depends_on: [postgres, localstack]
 
+  publisher-bluesky:
+    build: .
+    command: python -m src.publisher.main bluesky
+    env_file: .env
+    depends_on: [postgres, localstack]
+
+  publisher-linkedin:
+    build: .
+    command: python -m src.publisher.main linkedin
+    env_file: .env
+    depends_on: [postgres, localstack]
+
+  publisher-facebook:
+    build: .
+    command: python -m src.publisher.main facebook
+    env_file: .env
+    depends_on: [postgres, localstack]
+
 volumes:
   postgres_data:
