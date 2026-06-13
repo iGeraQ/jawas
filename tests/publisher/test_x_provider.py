@@ -88,7 +88,7 @@ def test_daily_limit_check_blocks_publish():
 
 
 def test_tweet_count_stored_on_publish():
-    """PublishedPost is created with tweet_count equal to the number of content paragraphs."""
+    """PublishedPost is created with post_count equal to the number of content paragraphs."""
     mock_draft = MagicMock()
     mock_draft.id = "draft-uuid"
     mock_draft.network = "x"
@@ -109,4 +109,4 @@ def test_tweet_count_stored_on_publish():
         process_message({"draft_id": "draft-uuid", "network": "x"}, "x")
 
     added = mock_session.add.call_args[0][0]
-    assert added.tweet_count == 2
+    assert added.post_count == 2

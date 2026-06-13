@@ -49,7 +49,7 @@ class PublishedPost(Base):
     draft_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("drafts.id"), nullable=False)
     network: Mapped[str] = mapped_column(String, nullable=False)
     network_post_id: Mapped[str] = mapped_column(String, nullable=False)
-    tweet_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    post_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     published_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
     url: Mapped[str | None] = mapped_column(Text)
 

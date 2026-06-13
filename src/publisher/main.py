@@ -56,7 +56,7 @@ def process_message(body: dict, provider_name: str) -> None:
                 tweet_count = len([p.strip() for p in content.split("\n\n") if p.strip()])  # must match XProvider.publish() splitting
                 cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
                 used = session.scalar(
-                    select(func.coalesce(func.sum(PublishedPost.tweet_count), 0))
+                    select(func.coalesce(func.sum(PublishedPost.post_count), 0))
                     .where(PublishedPost.network == "x")
                     .where(PublishedPost.published_at >= cutoff)
                 ) or 0
@@ -72,7 +72,7 @@ def process_message(body: dict, provider_name: str) -> None:
                 draft_id=draft.id,
                 network=provider_name,
                 network_post_id=post_id,
-                tweet_count=tweet_count,
+                post_count=tweet_count,
                 url=f"https://x.com/i/web/status/{post_id}" if provider_name == "x" else None,
             ))
             session.commit()
