@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+!.env.example
+__pycache__
+**/__pycache__
+**/*.pyc
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+tests/
+docs/
+assets/
+*.md

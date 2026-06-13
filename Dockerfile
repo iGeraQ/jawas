@@ -2,21 +2,24 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Instalar dependencias del sistema necesarias para Playwright
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install poetry && poetry config virtualenvs.create false
+RUN --mount=type=cache,target=/root/.cache/pip pip install poetry \
+    && poetry config virtualenvs.create false
 
-# 1. Copiar los archivos de configuración primero (para aprovechar el caché de Docker)
+# Copy only dependency manifests first — this layer stays cached as long as
+# pyproject.toml and poetry.lock don't change, regardless of source edits
 COPY pyproject.toml poetry.lock* ./
 
-# 2. Copiar el código fuente ANTES de instalar
-COPY src/ ./src/
+# Install dependencies without the project root (no src/ needed yet)
+# Cache mount keeps downloaded wheels across builds even when lock file changes
+RUN --mount=type=cache,target=/root/.cache/pypoetry \
+    poetry install --only main --no-root
 
-# 3. Ahora que el código existe, poetry podrá instalar el proyecto local
-RUN poetry install --only main
-
-# 4. Instalar Playwright
+# Playwright only reinstalls when dependencies actually change
 RUN playwright install chromium && playwright install-deps chromium
+
+# Source code goes last — changes here never invalidate the layers above
+COPY src/ ./src/

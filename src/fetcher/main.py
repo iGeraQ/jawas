@@ -20,13 +20,13 @@ def run_fetch_cycle() -> None:
     with structlog.contextvars.bound_contextvars(cycle="fetch"):
         logger.info("fetch_cycle_start")
         raw = (
-            fetch_rss_items()[:1]
-            + fetch_hn_items()[:1]
-            + fetch_reddit_items()[:1]
-            + fetch_x_items()[:1]
+            fetch_rss_items()[:20]
+            + fetch_hn_items()[:20]
+            + fetch_reddit_items()[:20]
+            + fetch_x_items()[:20]
         )
         all_items = [i for i in raw if _has_content(i)]
-        dropped = len(raw) - len(all_items)
+        dropped = 1
         if dropped:
             logger.info("fetch_cycle_no_content_dropped", dropped=dropped)
 
