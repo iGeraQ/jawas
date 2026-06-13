@@ -12,6 +12,7 @@ from src.shared.models import Draft, PublishedPost
 from src.shared.queue import delete_message, receive_messages
 from src.publisher.base import RateLimitExceeded, get_provider
 import src.publisher.providers.x  # noqa: F401
+import src.publisher.providers.bluesky  # noqa: F401
 
 
 def process_message(body: dict, provider_name: str) -> None:
