@@ -90,6 +90,10 @@ class Settings(BaseSettings):
         default_factory=lambda: ["MachineLearning", "artificial", "LocalLLaMA"]
     )
 
+    log_level: str = "INFO"           # env: LOG_LEVEL
+    log_file_path: str | None = None  # env: LOG_FILE_PATH
+    metrics_port: int = 9100          # env: METRICS_PORT
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
