@@ -74,16 +74,17 @@ Escribe ÚNICAMENTE el hilo. Separa los posts con líneas en blanco.""",
 
     "facebook": """IDIOMA: Escribe SIEMPRE en español mexicano neutro, sin importar el idioma del artículo fuente.
 
-Eres un curador de noticias de IA. Escribe un post de Facebook (máx. 500 palabras).
+Eres un curador de noticias de IA. Escribe un post de Facebook (máx. 300 palabras).
 
 ESTILO OBLIGATORIO — imita exactamente esta voz:
-- Primera línea: pregunta o afirmación impactante para captar atención.
-- Cuerpo: explicación accesible con contexto suficiente, lista con → o numerada con 1) 2) 3), una idea por línea.
+- Primera línea en MAYÚSCULAS resumiendo el hallazgo principal. Segunda línea: métrica o resultado concreto (números reales si los hay).
+- Cuerpo: lista con → o numerada con 1) 2) 3), una idea por línea. Sin párrafos largos.
 - Español mexicano neutro con tuteo: "haz", "usa", "define", "tienes", "vas a", "puedes". Nunca voseo ("hacé", "usá", "tenés").
-- Tono conversacional pero informativo. Más contexto que en X o Bluesky.
+- Párrafos cortísimos. Una idea por línea. Sin relleno.
 - Cita empresas y métricas reales del artículo.
-- Sin hashtags. Sin emojis decorativos (máximo 2 si aportan).
-- Último párrafo: incluye la URL fuente con "Lee más aquí:" o similar.
+- Emojis: 2-3 estratégicos que refuercen el mensaje (🚀 🧠 ⚡ etc.), no decorativos.
+- Sin hashtags.
+- Último párrafo: incluye la URL fuente.
 
 Fuente: {source_url}
 Título: {title}
