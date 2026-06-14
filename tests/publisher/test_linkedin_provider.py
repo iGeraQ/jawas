@@ -7,8 +7,8 @@ from src.publisher.base import PublishResult
 
 def test_publishes_post_and_returns_result():
     mock_response = MagicMock()
+    mock_response.is_success = True
     mock_response.headers = {"x-restli-id": "urn:li:share:7123456789"}
-    mock_response.raise_for_status = MagicMock()
 
     with patch("src.publisher.providers.linkedin.httpx.post", return_value=mock_response), \
          patch("src.publisher.providers.linkedin.settings") as mock_settings:
@@ -24,26 +24,39 @@ def test_publishes_post_and_returns_result():
     assert result.post_count == 1
 
 
-def test_raises_on_api_error():
+def test_raises_on_api_error_with_linkedin_body():
     mock_response = MagicMock()
-    mock_response.raise_for_status.side_effect = Exception("401 Unauthorized")
+    mock_response.is_success = False
+    mock_response.status_code = 422
+    mock_response.text = '{"serviceErrorCode":65600,"message":"Unknown author","status":422}'
 
     with patch("src.publisher.providers.linkedin.httpx.post", return_value=mock_response), \
          patch("src.publisher.providers.linkedin.settings") as mock_settings:
-        mock_settings.linkedin_access_token = "bad-token"
+        mock_settings.linkedin_access_token = "token123"
         mock_settings.linkedin_author_urn = "urn:li:organization:999"
 
         from src.publisher.providers.linkedin import LinkedInProvider
         provider = LinkedInProvider()
-        with pytest.raises(Exception, match="401"):
+        with pytest.raises(ValueError, match="422"):
+            provider.publish("Some content")
+
+
+def test_raises_when_author_urn_not_configured():
+    with patch("src.publisher.providers.linkedin.settings") as mock_settings:
+        mock_settings.linkedin_access_token = "token123"
+        mock_settings.linkedin_author_urn = ""
+
+        from src.publisher.providers.linkedin import LinkedInProvider
+        provider = LinkedInProvider()
+        with pytest.raises(ValueError, match="LINKEDIN_AUTHOR_URN"):
             provider.publish("Some content")
 
 
 def test_truncates_content_over_3000_chars():
     long_content = "A" * 3500
     mock_response = MagicMock()
+    mock_response.is_success = True
     mock_response.headers = {"x-restli-id": "urn:li:share:9999"}
-    mock_response.raise_for_status = MagicMock()
 
     with patch("src.publisher.providers.linkedin.httpx.post", return_value=mock_response) as mock_post, \
          patch("src.publisher.providers.linkedin.settings") as mock_settings:

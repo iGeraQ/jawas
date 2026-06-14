@@ -4,15 +4,13 @@ from sqlalchemy.orm import Session
 
 from src.shared.models import Base
 
-TEST_DB_URL = "postgresql://jawas:jawas@localhost:5432/jawas_test"
 
-
-@pytest.fixture(scope="session")
+@pytest.fixture
 def engine():
-    e = create_engine(TEST_DB_URL)
+    e = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(e)
     yield e
-    Base.metadata.drop_all(e)
+    e.dispose()
 
 
 @pytest.fixture

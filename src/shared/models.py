@@ -1,9 +1,12 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+
+def _new_uuid() -> str:
+    return str(uuid.uuid4())
 
 
 class Base(DeclarativeBase):
@@ -13,7 +16,7 @@ class Base(DeclarativeBase):
 class RawItem(Base):
     __tablename__ = "raw_items"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[str] = mapped_column(Uuid(as_uuid=False), primary_key=True, default=_new_uuid)
     external_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     source: Mapped[str] = mapped_column(String, nullable=False)
     url: Mapped[str] = mapped_column(Text, nullable=False)
@@ -29,8 +32,8 @@ class RawItem(Base):
 class Draft(Base):
     __tablename__ = "drafts"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    raw_item_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("raw_items.id"), nullable=False)
+    id: Mapped[str] = mapped_column(Uuid(as_uuid=False), primary_key=True, default=_new_uuid)
+    raw_item_id: Mapped[str] = mapped_column(ForeignKey("raw_items.id"), nullable=False)
     network: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     edited_content: Mapped[str | None] = mapped_column(Text)
@@ -45,8 +48,8 @@ class Draft(Base):
 class PublishedPost(Base):
     __tablename__ = "published_posts"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    draft_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("drafts.id"), nullable=False)
+    id: Mapped[str] = mapped_column(Uuid(as_uuid=False), primary_key=True, default=_new_uuid)
+    draft_id: Mapped[str] = mapped_column(ForeignKey("drafts.id"), nullable=False)
     network: Mapped[str] = mapped_column(String, nullable=False)
     network_post_id: Mapped[str] = mapped_column(String, nullable=False)
     post_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)

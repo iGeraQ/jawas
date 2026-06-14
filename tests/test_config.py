@@ -12,6 +12,7 @@ def test_settings_loads_required_fields():
         "APPROVED_DRAFTS_QUEUE_URL": "http://localhost:4566/000/approved",
         "DLQ_URL": "http://localhost:4566/000/dlq",
         "JINA_API_KEY": "jina-test",
+        "RELEVANCE_THRESHOLD": "7",
     }
     with patch.dict(os.environ, env, clear=True):
         from importlib import reload
