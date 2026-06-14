@@ -40,6 +40,13 @@ class LinkedInProvider(SocialNetworkProvider):
             "Content-Type": "application/json",
         }
         resp = httpx.post(self._API_URL, json=payload, headers=headers)
+        if not resp.is_success:
+            logger.error(
+                "linkedin_api_error",
+                status=resp.status_code,
+                body=resp.text,
+                author_urn=settings.linkedin_author_urn,
+            )
         resp.raise_for_status()
 
         post_urn = resp.headers.get("x-restli-id", "")
