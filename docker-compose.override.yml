@@ -1,0 +1,77 @@
+services:
+  fetcher:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/app/src
+    command: >
+      python -m watchfiles --filter python
+      "python -m src.fetcher.main"
+      src/fetcher src/shared
+
+  enricher:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/app/src
+    command: >
+      python -m watchfiles --filter python
+      "python -m src.enricher.main"
+      src/enricher src/shared
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/app/src
+    command: >
+      python -m watchfiles --filter python
+      "python -m src.bot.main"
+      src/bot src/shared
+
+  publisher-x:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/app/src
+    command: >
+      python -m watchfiles --filter python
+      "python -m src.publisher.main x"
+      src/publisher src/shared
+
+  publisher-bluesky:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/app/src
+    command: >
+      python -m watchfiles --filter python
+      "python -m src.publisher.main bluesky"
+      src/publisher src/shared
+
+  publisher-linkedin:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/app/src
+    command: >
+      python -m watchfiles --filter python
+      "python -m src.publisher.main linkedin"
+      src/publisher src/shared
+
+  publisher-facebook:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./src:/app/src
+    command: >
+      python -m watchfiles --filter python
+      "python -m src.publisher.main facebook"
+      src/publisher src/shared

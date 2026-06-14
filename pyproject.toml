@@ -29,6 +29,7 @@ atproto = {version = "^0.0.68", python = ">=3.12,<3.15"}
 pytest = "^8.0"
 pytest-asyncio = "^0.23"
 pytest-mock = "^3.14"
+watchfiles = "^0.22"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
