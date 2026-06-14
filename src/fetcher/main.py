@@ -12,10 +12,6 @@ from src.fetcher.sources.rss import fetch_rss_items
 from src.fetcher.sources.x_scraper import fetch_x_items
 
 
-def _has_content(item: dict) -> bool:
-    return len((item.get("raw_content") or "").strip()) >= 20
-
-
 def run_fetch_cycle() -> None:
     with structlog.contextvars.bound_contextvars(cycle="fetch"):
         logger.info("fetch_cycle_start")
@@ -25,16 +21,11 @@ def run_fetch_cycle() -> None:
             + fetch_reddit_items()[:20]
             + fetch_x_items()[:20]
         )
-        all_items = [i for i in raw if _has_content(i)]
-        dropped = 1
-        if dropped:
-            logger.info("fetch_cycle_no_content_dropped", dropped=dropped)
-
-        logger.info("fetch_cycle_collected", total=len(all_items))
+        logger.info("fetch_cycle_collected", total=len(raw))
 
         session = get_session()
         try:
-            new_items = filter_new_items(session, all_items)
+            new_items = filter_new_items(session, raw)
             new_items = new_items[:settings.fetcher_max_items_per_cycle]
             for item in new_items:
                 db_item = RawItem(**item)
