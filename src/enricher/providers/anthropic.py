@@ -25,6 +25,7 @@ ESTILO OBLIGATORIO — imita exactamente esta voz:
 - Paréntesis para contexto sin romper el flujo: "(solo cuentas sub-500K, las grandes son ruido)"
 - Cita empresas y personas reales mencionadas en el artículo.
 - Sin hashtags. Emojis: máximo 1, solo si aporta.
+- URLs: solo texto plano (https://...). Sin formato markdown ni corchetes.
 - Último tweet: incluye la URL fuente.
 
 Fuente: {source_url}
@@ -45,6 +46,7 @@ ESTILO OBLIGATORIO — imita exactamente esta voz:
 - Cita empresas y métricas reales del artículo.
 - Agrega una conclusión o análisis propio al final (1-2 líneas).
 - Sin hashtags. Sin emojis decorativos (máximo 1 si aporta).
+- URLs: solo texto plano (https://...). Sin formato markdown ni corchetes.
 - Último párrafo: incluye la URL fuente con "Te dejo el artículo:" o similar.
 
 Fuente: {source_url}
@@ -63,6 +65,7 @@ ESTILO OBLIGATORIO — imita exactamente esta voz:
 - Párrafos cortísimos. Una idea por línea. Sin relleno.
 - Cita empresas y personas reales mencionadas en el artículo.
 - Sin hashtags. Emojis: máximo 1, solo si aporta.
+- URLs: solo texto plano (https://...). Sin formato markdown ni corchetes.
 - Último post: incluye la URL fuente.
 
 Fuente: {source_url}
@@ -84,6 +87,7 @@ ESTILO OBLIGATORIO — imita exactamente esta voz:
 - Cita empresas y métricas reales del artículo.
 - Emojis: 2-3 estratégicos que refuercen el mensaje (🚀 🧠 ⚡ etc.), no decorativos.
 - Sin hashtags.
+- URLs: solo texto plano (https://...). Sin formato markdown ni corchetes.
 - Último párrafo: incluye la URL fuente.
 
 Fuente: {source_url}

@@ -14,6 +14,8 @@ class LinkedInProvider(SocialNetworkProvider):
     def publish(self, content: str) -> PublishResult:
         if not content.strip():
             raise ValueError("Empty content")
+        if not settings.linkedin_author_urn:
+            raise ValueError("LINKEDIN_AUTHOR_URN is not configured")
         self._bucket.acquire()
 
         text = content.strip()
@@ -47,7 +49,9 @@ class LinkedInProvider(SocialNetworkProvider):
                 body=resp.text,
                 author_urn=settings.linkedin_author_urn,
             )
-        resp.raise_for_status()
+            raise ValueError(
+                f"LinkedIn API error {resp.status_code}: {resp.text}"
+            )
 
         post_urn = resp.headers.get("x-restli-id", "")
         if not post_urn:

@@ -65,23 +65,18 @@ class XProvider(SocialNetworkProvider):
             raise
 
     def publish(self, content: str) -> PublishResult:
-        parts = [p.strip() for p in content.split("\n\n") if p.strip()]
-        if not parts:
+        if not content.strip():
             raise ValueError("Empty content")
 
-        self._check_daily_limit(len(parts))
+        self._check_daily_limit(1)
 
-        first_id = None
-        reply_to = None
-        for part in parts:
-            if len(part) > 280:
-                logger.warning("tweet_truncated", original_len=len(part))
-            tweet_id = self._post_tweet(part[:280], reply_to)
-            first_id = first_id or tweet_id
-            reply_to = tweet_id
+        if len(content) > 280:
+            logger.warning("tweet_truncated", original_len=len(content))
+
+        tweet_id = self._post_tweet(content[:280])
 
         return PublishResult(
-            post_id=first_id,
-            url=f"https://x.com/i/web/status/{first_id}",
-            post_count=len(parts),
+            post_id=tweet_id,
+            url=f"https://x.com/i/web/status/{tweet_id}",
+            post_count=1,
         )
