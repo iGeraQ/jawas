@@ -29,7 +29,7 @@ def _json_and_tee(logger_: Any, method: str, event_dict: dict) -> str:
 
 
 def setup_logging(service: str = "unknown") -> None:
-    global _file_handler, logger
+    global _file_handler
 
     log_level_str = settings.log_level.upper()
     log_level = getattr(logging, log_level_str, logging.INFO)
@@ -45,6 +45,7 @@ def setup_logging(service: str = "unknown") -> None:
 
     structlog.configure(
         processors=[
+            structlog.contextvars.merge_contextvars,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.CallsiteParameterAdder(
@@ -63,10 +64,7 @@ def setup_logging(service: str = "unknown") -> None:
 
     logging.basicConfig(level=log_level)
 
-    # Rebind the module-level logger with the service name so that
-    # structlog.testing.capture_logs() picks up the "service" key without
-    # needing merge_contextvars in the processor chain.
-    logger = structlog.get_logger().bind(service=service)
+    structlog.contextvars.bind_contextvars(service=service)
 
 
 def log_startup_config() -> None:

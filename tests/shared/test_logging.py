@@ -30,14 +30,19 @@ def reset_structlog():
 
 def test_setup_logging_binds_service():
     with patch("src.shared.logging.settings", _mock_settings()):
-        from src.shared.logging import setup_logging, logger
+        from src.shared.logging import setup_logging
         setup_logging("fetcher")
 
-    with structlog.testing.capture_logs() as cap_logs:
-        from src.shared.logging import logger
-        logger.info("test_event")
+    # Verify service is in context vars (proves all modules that call
+    # bound_contextvars or get_logger() independently will see it via merge_contextvars)
+    assert structlog.contextvars.get_contextvars()["service"] == "fetcher"
 
-    assert cap_logs[0]["service"] == "fetcher"
+    # Also verify the event is captured (capture_logs bypasses merge_contextvars
+    # by design, so we verify the event fires separately)
+    fresh_logger = structlog.get_logger()
+    with structlog.testing.capture_logs() as cap_logs:
+        fresh_logger.info("test_event")
+
     assert cap_logs[0]["event"] == "test_event"
 
 
