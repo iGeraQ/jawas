@@ -1527,6 +1527,23 @@ lint = ["pre-commit", "ruff (>=0.0.291)"]
 test = ["betamax (>=0.8,<0.9)", "pytest (>=2.7.3)", "urllib3 (==1.26.*)"]
 
 [[package]]
+name = "prometheus-client"
+version = "0.25.0"
+description = "Python client for the Prometheus monitoring system."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "prometheus_client-0.25.0-py3-none-any.whl", hash = "sha256:d5aec89e349a6ec230805d0df882f3807f74fd6c1a2fa86864e3c2279059fed1"},
+    {file = "prometheus_client-0.25.0.tar.gz", hash = "sha256:5e373b75c31afb3c86f1a52fa1ad470c9aace18082d39ec0d2f918d11cc9ba28"},
+]
+
+[package.extras]
+aiohttp = ["aiohttp"]
+django = ["django"]
+twisted = ["twisted"]
+
+[[package]]
 name = "proto-plus"
 version = "1.28.0"
 description = "Beautiful, Pythonic protocol buffers"
@@ -2591,4 +2608,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "91aa91ca60b2786f69fbf06cf2f843f10b022bc8d85c75e875d2bb350d27a5b0"
+content-hash = "c3ab5387af6053703fe35fec364ff7ec20bd0161611bf508ff88f947bea86e98"
