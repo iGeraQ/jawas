@@ -20,7 +20,6 @@ def process_message(body: dict) -> None:
         logger.error("malformed_message", body=str(body))
         return
     with structlog.contextvars.bound_contextvars(item_id=item_id):
-        logger.info("enricher_processing")
         session = get_session()
         try:
             item = session.get(RawItem, item_id)
@@ -28,6 +27,7 @@ def process_message(body: dict) -> None:
                 logger.warning("item_not_found")
                 return
 
+            logger.info("enricher_processing", url=item.url, source=item.source)
             url = resolve_url(item.url)
             content = extract_content(url)
             provider = get_provider()
@@ -38,6 +38,8 @@ def process_message(body: dict) -> None:
                 item.status = "discarded"
                 session.commit()
                 logger.info("item_discarded", score=score)
+                from src.shared.metrics import items_discarded_total
+                items_discarded_total.labels(reason="below_threshold").inc()
                 return
 
             drafts = provider.synthesize(
@@ -52,6 +54,8 @@ def process_message(body: dict) -> None:
                 logger.warning("no_drafts_generated", item_id=item_id)
                 item.status = "discarded"
                 session.commit()
+                from src.shared.metrics import items_discarded_total
+                items_discarded_total.labels(reason="no_drafts").inc()
                 return
 
             item.status = "enriched"
@@ -80,12 +84,15 @@ def run() -> None:
     logger.info("enricher_started")
     while True:
         messages = receive_messages(settings.raw_items_queue_url)
+        from src.shared.metrics import messages_processed_total, messages_failed_total
         for msg in messages:
             try:
                 process_message(json.loads(msg["Body"]))
                 delete_message(settings.raw_items_queue_url, msg["ReceiptHandle"])
+                messages_processed_total.labels(service="enricher").inc()
             except Exception as e:
                 logger.error("message_failed", error=str(e), exc_info=True)
+                messages_failed_total.labels(service="enricher").inc()
         if not messages:
             time.sleep(5)
 

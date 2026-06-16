@@ -1,3 +1,4 @@
+import time
 import anthropic
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -118,6 +119,7 @@ class AnthropicProvider(AIProvider):
 
     def score(self, title: str, content: str) -> int:
         try:
+            start = time.perf_counter()
             response = self._call(
                 model="claude-haiku-4-5-20251001",
                 messages=[{"role": "user", "content": _SCORE_PROMPT.format(
@@ -125,8 +127,20 @@ class AnthropicProvider(AIProvider):
                 )}],
                 max_tokens=5,
             )
+            elapsed = time.perf_counter() - start
+            duration_ms = round(elapsed * 1000, 2)
             score = max(0, min(10, int(response.content[0].text.strip())))
-            logger.info("item_scored", provider="anthropic", title=title[:50], score=score)
+            logger.info("item_scored", provider="anthropic", title=title[:50], score=score, duration_ms=duration_ms)
+            if hasattr(response, "usage") and response.usage:
+                logger.info(
+                    "ai_tokens_used",
+                    operation="score",
+                    provider="anthropic",
+                    input_tokens=response.usage.input_tokens,
+                    output_tokens=response.usage.output_tokens,
+                )
+            from src.shared.metrics import ai_call_duration_seconds
+            ai_call_duration_seconds.labels(operation="score", provider="anthropic").observe(elapsed)
             return score
         except Exception as e:
             logger.warning("scoring_failed", provider="anthropic", title=title[:50], error=str(e))
@@ -146,6 +160,8 @@ class AnthropicProvider(AIProvider):
                 logger.warning("unknown_network", network=network)
                 continue
             try:
+                logger.debug("synthesis_start", network=network)
+                start = time.perf_counter()
                 response = self._call(
                     model="claude-sonnet-4-6",
                     messages=[{"role": "user", "content": _SYNTHESIS_PROMPTS[network].format(
@@ -156,8 +172,22 @@ class AnthropicProvider(AIProvider):
                     )}],
                     max_tokens=600,
                 )
+                elapsed = time.perf_counter() - start
+                duration_ms = round(elapsed * 1000, 2)
                 drafts[network] = response.content[0].text.strip()
-                logger.info("draft_generated", provider="anthropic", network=network, title=title[:50])
+                logger.info("draft_generated", provider="anthropic", network=network, title=title[:50], duration_ms=duration_ms)
+                if hasattr(response, "usage") and response.usage:
+                    logger.info(
+                        "ai_tokens_used",
+                        operation="synthesize",
+                        provider="anthropic",
+                        network=network,
+                        input_tokens=response.usage.input_tokens,
+                        output_tokens=response.usage.output_tokens,
+                    )
+                from src.shared.metrics import ai_call_duration_seconds, drafts_created_total
+                ai_call_duration_seconds.labels(operation="synthesize", provider="anthropic").observe(elapsed)
+                drafts_created_total.labels(network=network).inc()
             except Exception as e:
                 logger.error("synthesis_failed", provider="anthropic", network=network, error=str(e))
         return drafts
