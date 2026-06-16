@@ -1,7 +1,5 @@
 import time
-from unittest.mock import patch, MagicMock
 
-import pytest
 import structlog.testing
 from prometheus_client import Histogram, CollectorRegistry
 

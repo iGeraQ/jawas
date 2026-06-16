@@ -24,42 +24,70 @@ services:
     build: .
     command: python -m src.fetcher.main
     env_file: .env
+    environment:
+      METRICS_PORT: "9100"
+    ports:
+      - "9100:9100"
     depends_on: [postgres, localstack]
 
   enricher:
     build: .
     command: python -m src.enricher.main
     env_file: .env
+    environment:
+      METRICS_PORT: "9101"
+    ports:
+      - "9101:9101"
     depends_on: [postgres, localstack]
 
   bot:
     build: .
     command: python -m src.bot.main
     env_file: .env
+    environment:
+      METRICS_PORT: "9102"
+    ports:
+      - "9102:9102"
     depends_on: [postgres]
 
   publisher-x:
     build: .
     command: python -m src.publisher.main x
     env_file: .env
+    environment:
+      METRICS_PORT: "9103"
+    ports:
+      - "9103:9103"
     depends_on: [postgres, localstack]
 
   publisher-bluesky:
     build: .
     command: python -m src.publisher.main bluesky
     env_file: .env
+    environment:
+      METRICS_PORT: "9104"
+    ports:
+      - "9104:9104"
     depends_on: [postgres, localstack]
 
   publisher-linkedin:
     build: .
     command: python -m src.publisher.main linkedin
     env_file: .env
+    environment:
+      METRICS_PORT: "9105"
+    ports:
+      - "9105:9105"
     depends_on: [postgres, localstack]
 
   publisher-facebook:
     build: .
     command: python -m src.publisher.main facebook
     env_file: .env
+    environment:
+      METRICS_PORT: "9106"
+    ports:
+      - "9106:9106"
     depends_on: [postgres, localstack]
 
 volumes:
