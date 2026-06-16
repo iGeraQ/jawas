@@ -71,7 +71,11 @@ def process_message(body: dict, provider_name: str) -> None:
 
 
 def run(provider_name: str) -> None:
-    setup_logging()
+    setup_logging(f"publisher-{provider_name}")
+    from src.shared.logging import log_startup_config
+    from src.shared.metrics import start_metrics_server
+    log_startup_config()
+    start_metrics_server(settings.metrics_port)
     if provider_name not in _REGISTRY:
         logger.error("unknown_provider", provider=provider_name)
         sys.exit(1)

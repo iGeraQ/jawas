@@ -72,7 +72,11 @@ def process_message(body: dict) -> None:
 
 def run() -> None:
     """Main SQS consumer loop: poll raw-items-queue and process each message."""
-    setup_logging()
+    setup_logging("enricher")
+    from src.shared.logging import log_startup_config
+    from src.shared.metrics import start_metrics_server
+    log_startup_config()
+    start_metrics_server(settings.metrics_port)
     logger.info("enricher_started")
     while True:
         messages = receive_messages(settings.raw_items_queue_url)

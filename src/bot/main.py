@@ -37,7 +37,11 @@ async def poll_pending_drafts(context) -> None:
 
 
 def main() -> None:
-    setup_logging()
+    setup_logging("bot")
+    from src.shared.logging import log_startup_config
+    from src.shared.metrics import start_metrics_server
+    log_startup_config()
+    start_metrics_server(settings.metrics_port)
     app = Application.builder().token(settings.telegram_bot_token).build()
 
     app.add_handler(CallbackQueryHandler(handle_approve, pattern=r"^approve:"))

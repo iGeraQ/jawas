@@ -48,8 +48,13 @@ def run_fetch_cycle() -> None:
 
 
 if __name__ == "__main__":
-    setup_logging()
+    setup_logging("fetcher")
+    from src.shared.logging import log_startup_config
+    from src.shared.metrics import start_metrics_server
+    log_startup_config()
+    start_metrics_server(settings.metrics_port)
     scheduler = BlockingScheduler()
-    scheduler.add_job(run_fetch_cycle, "interval", hours=settings.fetch_interval_hours)
+    job = scheduler.add_job(run_fetch_cycle, "interval", hours=settings.fetch_interval_hours)
+    logger.debug("scheduler_next_run", next_run_at=str(job.next_run_time))
     run_fetch_cycle()
     scheduler.start()
