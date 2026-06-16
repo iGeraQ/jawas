@@ -5,6 +5,7 @@ from telegram.ext import ContextTypes
 from src.shared.config import settings
 from src.shared.db import get_session
 from src.shared.logging import logger
+from src.shared.metrics import bot_actions_total
 from src.shared.models import Draft
 from src.shared.queue import send_message
 
@@ -18,27 +19,28 @@ def _keyboard(draft_id: str) -> InlineKeyboardMarkup:
 
 
 async def notify_draft(bot, draft_id: str) -> None:
-    session = get_session()
-    draft = session.get(Draft, draft_id)
-    if not draft or draft.telegram_msg_id is not None:
-        return
-    text = (
-        f"📝 *New draft* ({draft.network.upper()})\n\n"
-        f"*Source:* {draft.raw_item.title}\n\n"
-        f"*Draft:*\n{draft.content}"
-    )
-    try:
-        msg = await bot.send_message(
-            chat_id=settings.telegram_admin_chat_id,
-            text=text,
-            parse_mode="Markdown",
-            reply_markup=_keyboard(draft_id),
+    with structlog.contextvars.bound_contextvars(draft_id=draft_id):
+        session = get_session()
+        draft = session.get(Draft, draft_id)
+        if not draft or draft.telegram_msg_id is not None:
+            return
+        text = (
+            f"📝 *New draft* ({draft.network.upper()})\n\n"
+            f"*Source:* {draft.raw_item.title}\n\n"
+            f"*Draft:*\n{draft.content}"
         )
-        draft.telegram_msg_id = msg.message_id
-        session.commit()
-        logger.info("draft_notified", draft_id=draft_id)
-    except Exception as e:
-        logger.error("notify_draft_failed", draft_id=draft_id, error=str(e), exc_info=True)
+        try:
+            msg = await bot.send_message(
+                chat_id=settings.telegram_admin_chat_id,
+                text=text,
+                parse_mode="Markdown",
+                reply_markup=_keyboard(draft_id),
+            )
+            draft.telegram_msg_id = msg.message_id
+            session.commit()
+            logger.info("draft_notified", draft_id=draft_id)
+        except Exception as e:
+            logger.error("notify_draft_failed", draft_id=draft_id, error=str(e), exc_info=True)
 
 
 async def handle_approve(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -61,7 +63,8 @@ async def handle_approve(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_text(
             f"✅ *Approved* — publishing to {draft.network}...", parse_mode="Markdown"
         )
-        logger.info("draft_approved")
+        logger.info("draft_approved", draft_id=draft_id)
+        bot_actions_total.labels(action="approve").inc()
 
 
 async def handle_reject(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -77,7 +80,8 @@ async def handle_reject(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         session.commit()
         await query.answer("Rejected ❌")
         await query.edit_message_text("❌ *Rejected*", parse_mode="Markdown")
-        logger.info("draft_rejected")
+        logger.info("draft_rejected", draft_id=draft_id)
+        bot_actions_total.labels(action="reject").inc()
 
 
 async def handle_edit_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -108,4 +112,5 @@ async def handle_edit_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         })
         await update.message.reply_text("✅ Edited and approved for publishing.")
         context.user_data.pop("editing_draft", None)
-        logger.info("draft_edited_approved")
+        logger.info("draft_edited_approved", draft_id=draft_id)
+        bot_actions_total.labels(action="edit").inc()

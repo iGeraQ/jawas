@@ -22,6 +22,10 @@ from src.bot.handlers import (
 
 
 async def poll_pending_drafts(context) -> None:
+    import time
+    from src.shared.metrics import drafts_pending_review
+    logger.debug("poll_cycle_start")
+    start = time.perf_counter()
     session = get_session()
     try:
         pending = session.execute(
@@ -32,6 +36,9 @@ async def poll_pending_drafts(context) -> None:
         ).scalars().all()
         for draft in pending:
             await notify_draft(context.bot, str(draft.id))
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        logger.debug("poll_cycle_done", drafts_found=len(pending), duration_ms=duration_ms)
+        drafts_pending_review.set(len(pending))
     finally:
         session.close()
 
