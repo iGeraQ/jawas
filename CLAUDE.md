@@ -14,6 +14,7 @@ Autonomous agent that monitors AI news (RSS, HackerNews, Reddit, X scraping), sc
 - [x] Phase 4 — Telegram Bot (HITL handlers, polling job, DLQ)
 - [x] Phase 5 — Publisher (SocialNetworkProvider, X provider)
 - [x] Phase 6 — Integration (smoke tests, local dev wiring)
+- [x] Phase 7 — Observability Phase 1 (structured logging, Prometheus metrics, timing)
 
 Active branch: `feat/phase-1-foundation`
 
@@ -166,6 +167,35 @@ Known technical debt: handlers don't call `session.close()` explicitly (GC handl
 - `src/shared/config.py` — added `extra="ignore"` so unknown env vars are silently skipped
 
 21 tests total passing.
+
+## What Phase 7 delivered (committed)
+
+**Observability Phase 1** — code-only, no new infra containers.
+
+Design spec: `docs/superpowers/specs/2026-06-14-logging-observability-design.md`
+Implementation plan: `docs/superpowers/plans/2026-06-14-logging-observability.md`
+
+- `src/shared/config.py` — added `log_level`, `log_file_path`, `metrics_port` fields
+- `.env.example` — documented new observability env vars
+- `src/shared/logging.py` — rewritten: `LOG_LEVEL` control, dual output (stdout + `RotatingFileHandler`), `service` bound via contextvars, `merge_contextvars` as first processor, `log_startup_config()`
+- `src/shared/metrics.py` — 8 Counters, 3 Histograms, 2 Gauges, `start_metrics_server(port)`
+- `src/shared/timing.py` — `@timed` decorator + `timed_block` context manager
+- `docker-compose.yml` — each service gets a distinct `METRICS_PORT` (9100-9106) + port exposure
+- All 4 service mains — `setup_logging(service)`, `log_startup_config()`, `start_metrics_server()` at startup
+- `src/shared/queue.py` — `messages_received` and `message_deleted` DEBUG logs
+- `src/fetcher/main.py` — `_fetch_with_timing()`, `dedup_stats` log, `fetch_cycle_items_new` gauge, `items_fetched_total` counter
+- `src/enricher/url_resolver.py` — `url_resolved` DEBUG log with redirect_count
+- `src/enricher/content_extractor.py` — `duration_ms` on `content_extracted`, `http_request_duration_seconds` histogram
+- `src/enricher/providers/anthropic.py` — `ai_tokens_used` log, `duration_ms` on score/synthesis, `ai_call_duration_seconds` + `drafts_created_total` metrics
+- `src/enricher/main.py` — `enricher_processing` gains `url`/`source`, `items_discarded_total`, `messages_processed/failed_total`
+- `src/publisher/main.py` — `publish_attempt` log, `publish_success/failure_total`, `messages_processed/failed_total`
+- `src/bot/main.py` — `poll_cycle_start/done` DEBUG logs, `drafts_pending_review` gauge
+- `src/bot/handlers.py` — `draft_id` bound context in `notify_draft()`, `bot_actions_total` counter per action
+- `src/bot/dlq.py` — `dlq_polled` INFO log
+
+105 tests total passing.
+
+Phase 2 (Loki + Grafana + Prometheus containers in docker-compose) is a separate future spec.
 
 ## Local .env
 
