@@ -45,6 +45,7 @@ def process_message(body: dict, provider_name: str) -> None:
                 logger.info("already_published", draft_id=draft_id, post_id=existing.network_post_id)
                 return
 
+            logger.info("publish_attempt", network=provider_name, draft_id=draft_id)
             content = body.get("content") or draft.edited_content or draft.content
             provider = get_provider(provider_name)
             result = provider.publish(content)
@@ -59,12 +60,18 @@ def process_message(body: dict, provider_name: str) -> None:
             ))
             session.commit()
             logger.info("post_published", network=provider_name, post_id=result.post_id)
+            from src.shared.metrics import publish_success_total, messages_processed_total
+            publish_success_total.labels(network=provider_name).inc()
+            messages_processed_total.labels(service=f"publisher-{provider_name}").inc()
         except RateLimitExceeded:
             session.rollback()
             raise
         except Exception as e:
             session.rollback()
             logger.error("publish_failed", error=str(e), exc_info=True)
+            from src.shared.metrics import publish_failure_total, messages_failed_total
+            publish_failure_total.labels(network=provider_name, reason=type(e).__name__).inc()
+            messages_failed_total.labels(service=f"publisher-{provider_name}").inc()
             raise
         finally:
             session.close()
