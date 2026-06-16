@@ -53,3 +53,28 @@ def test_delete_message():
     mock_client.delete_message.assert_called_once_with(
         QueueUrl="http://localhost/queue", ReceiptHandle="rh-abc"
     )
+
+
+def test_receive_messages_logs_count():
+    import structlog.testing
+    mock_client = _mock_client()
+    with patch("src.shared.queue._client", return_value=mock_client), \
+         patch("src.shared.queue.settings"), \
+         structlog.testing.capture_logs() as cap_logs:
+        receive_messages("http://localhost/queue")
+    debug_logs = [l for l in cap_logs if l.get("event") == "messages_received"]
+    assert len(debug_logs) == 1
+    assert debug_logs[0]["count"] == 1
+    assert "queue" in debug_logs[0]
+
+
+def test_delete_message_logs_debug():
+    import structlog.testing
+    mock_client = _mock_client()
+    with patch("src.shared.queue._client", return_value=mock_client), \
+         patch("src.shared.queue.settings"), \
+         structlog.testing.capture_logs() as cap_logs:
+        delete_message("http://localhost/queue", "rh-abc")
+    debug_logs = [l for l in cap_logs if l.get("event") == "message_deleted"]
+    assert len(debug_logs) == 1
+    assert "queue" in debug_logs[0]

@@ -27,8 +27,11 @@ def receive_messages(queue_url: str, max_messages: int = 10, wait_time_seconds: 
         MaxNumberOfMessages=max_messages,
         WaitTimeSeconds=wait_time_seconds,
     )
-    return resp.get("Messages", [])
+    messages = resp.get("Messages", [])
+    logger.debug("messages_received", count=len(messages), queue=queue_url)
+    return messages
 
 
 def delete_message(queue_url: str, receipt_handle: str) -> None:
     _client().delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+    logger.debug("message_deleted", queue=queue_url)
