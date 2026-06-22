@@ -2,6 +2,42 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 
+def split_into_thread(text: str, limit: int) -> list[str]:
+    """Split text into ordered chunks of at most `limit` characters for threading.
+
+    Length-driven: text that already fits returns a single chunk unchanged, so
+    short multi-paragraph posts are NOT threaded. Longer text is greedily packed
+    word by word; a single token longer than `limit` (e.g. a giant URL) is
+    hard-split as a last resort.
+
+    ponytail: counts raw characters, not platform-weighted length (X counts URLs
+    as 23, CJK as 2). Fine for Latin text; may over-split URL-heavy tweets.
+    """
+    text = text.strip()
+    if len(text) <= limit:
+        return [text]
+
+    chunks: list[str] = []
+    current = ""
+    for word in text.split():
+        while len(word) > limit:
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.append(word[:limit])
+            word = word[limit:]
+        if not current:
+            current = word
+        elif len(current) + 1 + len(word) <= limit:
+            current += " " + word
+        else:
+            chunks.append(current)
+            current = word
+    if current:
+        chunks.append(current)
+    return chunks
+
+
 @dataclass
 class PublishResult:
     post_id: str

@@ -1,5 +1,6 @@
 import structlog
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 from src.shared.config import settings
@@ -30,12 +31,20 @@ async def notify_draft(bot, draft_id: str) -> None:
             f"*Draft:*\n{draft.content}"
         )
         try:
-            msg = await bot.send_message(
-                chat_id=settings.telegram_admin_chat_id,
-                text=text,
-                parse_mode="Markdown",
-                reply_markup=_keyboard(draft_id),
-            )
+            try:
+                msg = await bot.send_message(
+                    chat_id=settings.telegram_admin_chat_id,
+                    text=text,
+                    parse_mode="Markdown",
+                    reply_markup=_keyboard(draft_id),
+                )
+            except BadRequest:
+                # ponytail: draft/title can contain unbalanced Markdown; resend as plain text
+                msg = await bot.send_message(
+                    chat_id=settings.telegram_admin_chat_id,
+                    text=text,
+                    reply_markup=_keyboard(draft_id),
+                )
             draft.telegram_msg_id = msg.message_id
             session.commit()
             logger.info("draft_notified", draft_id=draft_id)

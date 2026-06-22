@@ -1,3 +1,4 @@
+import itertools
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -47,6 +48,36 @@ def test_single_post_for_multipart_content():
     mock_instance.send_post.assert_called_once_with(text="Post one\n\nPost two", facets=None)
     assert result.post_id == mock_response.uri
     assert result.post_count == 1
+
+
+def test_publishes_long_content_as_thread():
+    counter = itertools.count(1)
+
+    def _send(**kwargs):
+        n = next(counter)
+        return MagicMock(uri=f"at://did:plc:abc/app.bsky.feed.post/r{n}", cid=f"cid{n}")
+
+    with patch("src.publisher.providers.bluesky.Client") as MockClient, \
+         patch("src.publisher.providers.bluesky.settings") as mock_settings:
+        mock_settings.bluesky_handle = "testuser.bsky.social"
+        mock_settings.bluesky_app_password = "app-pass"
+        mock_instance = MockClient.return_value
+        mock_instance.send_post.side_effect = _send
+
+        from src.publisher.providers.bluesky import BlueskyProvider
+        provider = BlueskyProvider()
+        long_content = " ".join(["palabra"] * 100)  # ~799 chars → several posts at 300
+        result = provider.publish(long_content)
+
+    n = mock_instance.send_post.call_count
+    assert n >= 2
+    calls = mock_instance.send_post.call_args_list
+    # Root post has no reply_to; replies carry a ReplyRef.
+    assert "reply_to" not in calls[0].kwargs
+    assert calls[1].kwargs["reply_to"] is not None
+    assert all(len(c.kwargs["text"]) <= 300 for c in calls)
+    assert result.post_id == "at://did:plc:abc/app.bsky.feed.post/r1"
+    assert result.post_count == n
 
 
 def test_empty_content_raises():

@@ -1,3 +1,5 @@
+import itertools
+
 import pytest
 import tweepy
 from unittest.mock import patch, MagicMock
@@ -39,6 +41,32 @@ def test_publishes_multipart_as_single_tweet():
     mock_client.create_tweet.assert_called_once_with(text="Tweet 1\n\nTweet 2\n\nTweet 3")
     assert result.post_id == "tweet123"
     assert result.post_count == 1
+
+
+def test_publishes_long_content_as_thread():
+    counter = itertools.count(1)
+    mock_client = MagicMock()
+    mock_client.create_tweet.side_effect = lambda **kw: MagicMock(data={"id": f"t{next(counter)}"})
+    mock_session = MagicMock()
+    mock_session.scalar.return_value = 0
+
+    long_content = " ".join(["word"] * 300)  # ~1499 chars → several tweets at 280
+
+    with patch("src.publisher.providers.x.tweepy.Client", return_value=mock_client), \
+         patch("src.publisher.providers.x.get_session", return_value=mock_session):
+        provider = XProvider()
+        result = provider.publish(long_content)
+
+    n = mock_client.create_tweet.call_count
+    assert n >= 2
+    calls = mock_client.create_tweet.call_args_list
+    # Root tweet has no reply target; each subsequent tweet chains to the prior id.
+    assert "in_reply_to_tweet_id" not in calls[0].kwargs
+    assert calls[1].kwargs["in_reply_to_tweet_id"] == "t1"
+    assert calls[2].kwargs["in_reply_to_tweet_id"] == "t2"
+    assert all(len(c.kwargs["text"]) <= 280 for c in calls)
+    assert result.post_id == "t1"
+    assert result.post_count == n
 
 
 def test_429_does_not_retry():

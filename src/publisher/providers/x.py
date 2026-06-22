@@ -4,11 +4,19 @@ import tweepy
 from sqlalchemy import func, select
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from src.publisher.base import PublishResult, RateLimitExceeded, SocialNetworkProvider, register_publisher
+from src.publisher.base import (
+    PublishResult,
+    RateLimitExceeded,
+    SocialNetworkProvider,
+    register_publisher,
+    split_into_thread,
+)
 from src.shared.config import settings
 from src.shared.db import get_session
 from src.shared.logging import logger
 from src.shared.models import PublishedPost
+
+_TWEET_LIMIT = 280
 
 
 @register_publisher("x")
@@ -68,15 +76,21 @@ class XProvider(SocialNetworkProvider):
         if not content.strip():
             raise ValueError("Empty content")
 
-        self._check_daily_limit(1)
+        chunks = split_into_thread(content, _TWEET_LIMIT)
+        # Reserve quota for the whole thread up front; raise before posting a
+        # partial chain if it would exceed the daily limit.
+        self._check_daily_limit(len(chunks))
 
-        if len(content) > 280:
-            logger.warning("tweet_truncated", original_len=len(content))
+        first_id = self._post_tweet(chunks[0])
+        reply_to = first_id
+        for chunk in chunks[1:]:
+            reply_to = self._post_tweet(chunk, reply_to_id=reply_to)
 
-        tweet_id = self._post_tweet(content[:280])
+        if len(chunks) > 1:
+            logger.info("thread_posted", tweets=len(chunks), root_id=first_id)
 
         return PublishResult(
-            post_id=tweet_id,
-            url=f"https://x.com/i/web/status/{tweet_id}",
-            post_count=1,
+            post_id=first_id,
+            url=f"https://x.com/i/web/status/{first_id}",
+            post_count=len(chunks),
         )

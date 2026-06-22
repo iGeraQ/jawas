@@ -75,7 +75,7 @@ if __name__ == "__main__":
     log_startup_config()
     start_metrics_server(settings.metrics_port)
     scheduler = BlockingScheduler()
-    job = scheduler.add_job(run_fetch_cycle, "interval", hours=settings.fetch_interval_hours)
-    logger.debug("scheduler_next_run", next_run_at=str(job.next_run_time))
+    # next_run_time is only set after scheduler.start(); don't read it here.
+    scheduler.add_job(run_fetch_cycle, "interval", hours=settings.fetch_interval_hours)
     run_fetch_cycle()
     scheduler.start()

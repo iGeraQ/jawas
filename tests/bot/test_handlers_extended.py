@@ -37,6 +37,35 @@ async def test_notify_draft_sends_telegram_message(db_session):
 
 
 @pytest.mark.asyncio
+async def test_notify_draft_falls_back_to_plain_text_on_markdown_error(db_session):
+    from telegram.error import BadRequest
+    from src.shared.models import Draft, RawItem
+
+    item = RawItem(external_id="notify-md", source="rss", url="http://ex.com", title="AI *news")
+    db_session.add(item)
+    db_session.flush()
+    draft = Draft(raw_item_id=item.id, network="x", content="Tweet with _unbalanced markdown")
+    db_session.add(draft)
+    db_session.flush()
+
+    sent_msg = MagicMock()
+    sent_msg.message_id = 777
+    mock_bot = MagicMock()
+    # First (Markdown) send fails parsing; second (plain) send succeeds.
+    mock_bot.send_message = AsyncMock(side_effect=[BadRequest("Can't parse entities"), sent_msg])
+
+    with patch("src.bot.handlers.get_session", return_value=db_session), \
+         patch("src.bot.handlers.settings") as mock_settings:
+        mock_settings.telegram_admin_chat_id = 123
+        await notify_draft(mock_bot, str(draft.id))
+
+    assert mock_bot.send_message.await_count == 2
+    assert mock_bot.send_message.await_args.kwargs.get("parse_mode") is None
+    db_session.refresh(draft)
+    assert draft.telegram_msg_id == 777
+
+
+@pytest.mark.asyncio
 async def test_notify_draft_skips_already_notified(db_session):
     from src.shared.models import Draft, RawItem
 

@@ -83,7 +83,14 @@ def run() -> None:
     start_metrics_server(settings.metrics_port)
     logger.info("enricher_started")
     while True:
-        messages = receive_messages(settings.raw_items_queue_url)
+        try:
+            messages = receive_messages(settings.raw_items_queue_url)
+        except Exception as e:
+            # ponytail: survive transient broker errors (e.g. queue not yet created);
+            # retry next loop instead of crashing the consumer.
+            logger.error("receive_failed", error=str(e), exc_info=True)
+            time.sleep(5)
+            continue
         from src.shared.metrics import messages_processed_total, messages_failed_total
         for msg in messages:
             try:

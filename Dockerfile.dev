@@ -2,6 +2,12 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# Never write .pyc into the bind-mounted ./src. The host may run a different
+# Python (e.g. 3.14) against the same tree; mixed/partial pyc files in a shared
+# __pycache__ corrupt and break imports ("EOFError: marshal data too short").
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*

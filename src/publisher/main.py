@@ -88,7 +88,13 @@ def run(provider_name: str) -> None:
         sys.exit(1)
     logger.info("publisher_started", provider=provider_name)
     while True:
-        messages = receive_messages(settings.approved_drafts_queue_url)
+        try:
+            messages = receive_messages(settings.approved_drafts_queue_url)
+        except Exception as e:
+            # ponytail: survive transient broker errors; retry next loop instead of crashing.
+            logger.error("receive_failed", error=str(e), exc_info=True)
+            time.sleep(5)
+            continue
         for msg in messages:
             try:
                 body = json.loads(msg["Body"])

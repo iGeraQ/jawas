@@ -6,7 +6,33 @@ from src.publisher.base import (
     SocialNetworkProvider,
     get_provider,
     register_publisher,
+    split_into_thread,
 )
+
+
+def test_split_short_text_is_single_chunk():
+    assert split_into_thread("hello world", 280) == ["hello world"]
+
+
+def test_split_keeps_short_multipart_as_one_chunk():
+    text = "Tweet 1\n\nTweet 2\n\nTweet 3"
+    assert split_into_thread(text, 280) == [text]
+
+
+def test_split_long_text_into_bounded_chunks_without_losing_words():
+    text = " ".join(["word"] * 200)  # 999 chars
+    chunks = split_into_thread(text, 100)
+    assert len(chunks) > 1
+    assert all(len(c) <= 100 for c in chunks)
+    # Every original word survives, in order.
+    assert " ".join(chunks).split() == text.split()
+
+
+def test_split_hard_splits_token_longer_than_limit():
+    url = "https://example.com/" + "a" * 100  # 120 chars, no spaces
+    chunks = split_into_thread(url, 50)
+    assert all(len(c) <= 50 for c in chunks)
+    assert "".join(chunks) == url
 
 
 def test_publish_result_default_post_count():
