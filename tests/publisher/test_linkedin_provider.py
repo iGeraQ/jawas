@@ -52,6 +52,49 @@ def test_raises_when_author_urn_not_configured():
             provider.publish("Some content")
 
 
+def test_url_in_body_becomes_article_card():
+    mock_response = MagicMock()
+    mock_response.is_success = True
+    mock_response.headers = {"x-restli-id": "urn:li:share:42"}
+
+    content = (
+        "GRAN NOTICIA\n\n1) Algo\n2) Otra cosa\n\n"
+        "Te dejo el artículo: https://example.com/post"
+    )
+    with patch("src.publisher.providers.linkedin.httpx.post", return_value=mock_response) as mock_post, \
+         patch("src.publisher.providers.linkedin.settings") as mock_settings:
+        mock_settings.linkedin_access_token = "tok"
+        mock_settings.linkedin_author_urn = "urn:li:organization:1"
+
+        from src.publisher.providers.linkedin import LinkedInProvider
+        LinkedInProvider().publish(content)
+
+    share = mock_post.call_args[1]["json"]["specificContent"]["com.linkedin.ugc.ShareContent"]
+    assert share["shareMediaCategory"] == "ARTICLE"
+    assert share["media"] == [{"status": "READY", "originalUrl": "https://example.com/post"}]
+    # URL and its orphan lead-in must not remain in the commentary.
+    assert "https://example.com/post" not in share["shareCommentary"]["text"]
+    assert "Te dejo el artículo" not in share["shareCommentary"]["text"]
+
+
+def test_no_url_stays_plain_none():
+    mock_response = MagicMock()
+    mock_response.is_success = True
+    mock_response.headers = {"x-restli-id": "urn:li:share:7"}
+
+    with patch("src.publisher.providers.linkedin.httpx.post", return_value=mock_response) as mock_post, \
+         patch("src.publisher.providers.linkedin.settings") as mock_settings:
+        mock_settings.linkedin_access_token = "tok"
+        mock_settings.linkedin_author_urn = "urn:li:organization:1"
+
+        from src.publisher.providers.linkedin import LinkedInProvider
+        LinkedInProvider().publish("Sin enlace aquí")
+
+    share = mock_post.call_args[1]["json"]["specificContent"]["com.linkedin.ugc.ShareContent"]
+    assert share["shareMediaCategory"] == "NONE"
+    assert "media" not in share
+
+
 def test_truncates_content_over_3000_chars():
     long_content = "A" * 3500
     mock_response = MagicMock()
